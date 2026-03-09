@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "deleteOutDir": true
+  },
+  "exclude": [
+    "node_modules",
+    "test",
+    "dist",
+    "**/*spec.ts"
+  ]
+}
