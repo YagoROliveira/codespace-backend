@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Certificate, CertificateDocument } from './schemas/certificate.schema';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class CertificatesService {
@@ -36,7 +36,7 @@ export class CertificatesService {
     });
     if (existing) return existing;
 
-    const code = `CS-${uuidv4().slice(0, 8).toUpperCase()}`;
+    const code = `CS-${randomUUID().slice(0, 8).toUpperCase()}`;
     return this.certModel.create({
       userId: new Types.ObjectId(data.userId),
       trackId: new Types.ObjectId(data.trackId),

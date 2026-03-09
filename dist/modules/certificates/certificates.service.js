@@ -17,7 +17,7 @@ const common_1 = require("@nestjs/common");
 const mongoose_1 = require("@nestjs/mongoose");
 const mongoose_2 = require("mongoose");
 const certificate_schema_1 = require("./schemas/certificate.schema");
-const uuid_1 = require("uuid");
+const crypto_1 = require("crypto");
 let CertificatesService = class CertificatesService {
     constructor(certModel) {
         this.certModel = certModel;
@@ -38,7 +38,7 @@ let CertificatesService = class CertificatesService {
         });
         if (existing)
             return existing;
-        const code = `CS-${(0, uuid_1.v4)().slice(0, 8).toUpperCase()}`;
+        const code = `CS-${(0, crypto_1.randomUUID)().slice(0, 8).toUpperCase()}`;
         return this.certModel.create({
             userId: new mongoose_2.Types.ObjectId(data.userId),
             trackId: new mongoose_2.Types.ObjectId(data.trackId),
