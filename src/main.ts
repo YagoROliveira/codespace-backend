@@ -2,21 +2,18 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
-    rawBody: true,
-  });
+let cachedApp: any;
 
-  // Global prefix
+async function createApp() {
+  const app = await NestFactory.create(AppModule, { rawBody: true });
+
   app.setGlobalPrefix('api');
 
-  // CORS
   app.enableCors({
-    origin: [/^http:\/\/localhost:\d+$/],
+    origin: true,
     credentials: true,
   });
 
-  // Global validation pipe
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -25,8 +22,24 @@ async function bootstrap() {
     }),
   );
 
-  const port = process.env.PORT || 3000;
-  await app.listen(port);
-  console.log(`🚀 Codespace API running on http://localhost:${port}/api`);
+  await app.init();
+  return app;
 }
-bootstrap();
+
+// Vercel serverless handler (default export)
+export default async function handler(req: any, res: any) {
+  if (!cachedApp) {
+    cachedApp = await createApp();
+  }
+  const expressApp = cachedApp.getHttpAdapter().getInstance();
+  return expressApp(req, res);
+}
+
+// Local development
+if (process.env.NODE_ENV !== 'production') {
+  createApp().then(async (app) => {
+    const port = process.env.PORT || 3000;
+    await app.listen(port);
+    console.log(`🚀 Codespace API running on http://localhost:${port}/api`);
+  });
+}
