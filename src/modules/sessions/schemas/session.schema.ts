@@ -65,6 +65,9 @@ export class Session {
   @Prop({ default: '' })
   notes: string;
 
+  @Prop({ default: '' })
+  calendarEventId: string;
+
   @Prop({ type: [String], default: [] })
   topics: string[];
 

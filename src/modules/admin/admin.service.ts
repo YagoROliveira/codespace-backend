@@ -9,6 +9,7 @@ import { Subscription, SubscriptionDocument } from '../plans/schemas/subscriptio
 import { Plan, PlanDocument } from '../plans/schemas/plan.schema';
 import { CodeEvaluation, CodeEvaluationDocument } from './schemas/code-evaluation.schema';
 import { PaymentTransaction, PaymentTransactionDocument } from './schemas/payment-transaction.schema';
+import { GoogleCalendarService } from '../google-calendar/google-calendar.service';
 import * as bcrypt from 'bcryptjs';
 
 @Injectable()
@@ -23,6 +24,7 @@ export class AdminService {
     @InjectModel(CodeEvaluation.name) private codeEvaluationModel: Model<CodeEvaluationDocument>,
     @InjectModel(PaymentTransaction.name) private paymentTransactionModel: Model<PaymentTransactionDocument>,
     @InjectConnection() private connection: Connection,
+    private googleCalendarService: GoogleCalendarService,
   ) { }
 
   // ===================== DASHBOARD =====================
@@ -516,15 +518,48 @@ export class AdminService {
     type?: string;
     meetingUrl?: string;
     topics?: string[];
+    generateMeet?: boolean;
   }) {
+    const duration = data.durationMinutes || 60;
+    let meetingUrl = data.meetingUrl || '';
+    let calendarEventId = '';
+
+    // If generateMeet is true, create Google Calendar event with Meet
+    if (data.generateMeet && this.googleCalendarService.isConfigured()) {
+      // Get student + mentor info for attendees
+      const [student, mentor] = await Promise.all([
+        this.userModel.findById(data.userId).select('name email').lean(),
+        this.userModel.findById(adminId).select('name email').lean(),
+      ]);
+
+      const attendees: { email: string; displayName?: string }[] = [];
+      if (student?.email) attendees.push({ email: student.email, displayName: student.name });
+      if (mentor?.email) attendees.push({ email: mentor.email, displayName: mentor.name });
+
+      const result = await this.googleCalendarService.createEvent({
+        summary: data.title,
+        description: data.description || `Sessão de ${data.type || 'mentoring'} - Codespace`,
+        startDateTime: data.scheduledAt,
+        durationMinutes: duration,
+        attendees,
+      });
+
+      if (result) {
+        meetingUrl = result.meetingUrl;
+        calendarEventId = result.eventId;
+      }
+    }
+
     return this.sessionModel.create({
       ...data,
       mentorId: new Types.ObjectId(adminId),
       userId: new Types.ObjectId(data.userId),
-      durationMinutes: data.durationMinutes || 60,
+      durationMinutes: duration,
       status: 'scheduled',
       type: data.type || 'mentoring',
       scheduledAt: new Date(data.scheduledAt),
+      meetingUrl,
+      calendarEventId,
     });
   }
 
@@ -550,12 +585,38 @@ export class AdminService {
     ).populate('userId', 'name email avatar plan');
 
     if (!session) throw new NotFoundException('Sessão não encontrada');
+
+    // Sync with Google Calendar if event exists
+    if (session.calendarEventId && this.googleCalendarService.isConfigured()) {
+      const calendarUpdate: any = {};
+      if (data.title) calendarUpdate.summary = data.title;
+      if (data.description !== undefined) calendarUpdate.description = data.description;
+      if (data.scheduledAt) {
+        calendarUpdate.startDateTime = data.scheduledAt;
+        calendarUpdate.durationMinutes = data.durationMinutes || session.durationMinutes;
+      }
+
+      // If cancelled, delete the calendar event
+      if (data.status === 'cancelled') {
+        await this.googleCalendarService.deleteEvent(session.calendarEventId);
+      } else if (Object.keys(calendarUpdate).length > 0) {
+        await this.googleCalendarService.updateEvent(session.calendarEventId, calendarUpdate);
+      }
+    }
+
     return session;
   }
 
   async deleteSession(sessionId: string) {
-    const session = await this.sessionModel.findByIdAndDelete(sessionId);
+    const session = await this.sessionModel.findById(sessionId);
     if (!session) throw new NotFoundException('Sessão não encontrada');
+
+    // Delete Google Calendar event if exists
+    if (session.calendarEventId && this.googleCalendarService.isConfigured()) {
+      await this.googleCalendarService.deleteEvent(session.calendarEventId);
+    }
+
+    await this.sessionModel.findByIdAndDelete(sessionId);
     return { message: 'Sessão removida com sucesso' };
   }
 

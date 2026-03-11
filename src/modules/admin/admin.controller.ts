@@ -4,6 +4,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
+import { GoogleCalendarService } from '../google-calendar/google-calendar.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -13,7 +14,10 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('admin')
 export class AdminController {
-  constructor(private readonly adminService: AdminService) { }
+  constructor(
+    private readonly adminService: AdminService,
+    private readonly googleCalendarService: GoogleCalendarService,
+  ) { }
 
   // ===================== DASHBOARD =====================
   @Get('dashboard')
@@ -167,6 +171,11 @@ export class AdminController {
   }
 
   // ===================== SESSIONS =====================
+  @Get('sessions/google-status')
+  async getGoogleCalendarStatus(): Promise<any> {
+    return { configured: this.googleCalendarService.isConfigured() };
+  }
+
   @Get('sessions')
   async getSessions(
     @Query('status') status?: string,
@@ -200,6 +209,7 @@ export class AdminController {
       type?: string;
       meetingUrl?: string;
       topics?: string[];
+      generateMeet?: boolean;
     },
   ): Promise<any> {
     return this.adminService.createSession(data.mentorId || adminId, data);
