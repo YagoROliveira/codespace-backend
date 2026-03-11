@@ -29,6 +29,7 @@ export class AuthService {
         plan: user.plan,
         role: user.role,
         avatar: user.avatar,
+        accountStatus: user.accountStatus || 'inactive',
       },
       token,
     };
@@ -58,6 +59,7 @@ export class AuthService {
         plan: user.plan,
         role: user.role,
         avatar: user.avatar,
+        accountStatus: user.accountStatus || 'inactive',
       },
       token,
     };

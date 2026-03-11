@@ -17,6 +17,7 @@ import { CheckinsModule } from './modules/checkins/checkins.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { ResourcesModule } from './modules/resources/resources.module';
 import { PaymentsModule } from './modules/payments/payments.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { PaymentsModule } from './modules/payments/payments.module';
     ProjectsModule,
     ResourcesModule,
     PaymentsModule,
+    NotificationsModule,
   ],
 })
 export class AppModule { }

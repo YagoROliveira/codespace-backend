@@ -74,4 +74,35 @@ export class UsersService {
     const result = await this.userModel.findByIdAndDelete(id).exec();
     if (!result) throw new NotFoundException('Usuário não encontrado');
   }
+
+  async activateAccount(userId: string, plan: string, subscriptionEndDate: Date): Promise<UserDocument> {
+    const user = await this.userModel.findByIdAndUpdate(
+      userId,
+      {
+        $set: {
+          accountStatus: 'active',
+          plan,
+          subscriptionEndDate,
+        },
+      },
+      { new: true },
+    ).exec();
+    if (!user) throw new NotFoundException('Usuário não encontrado');
+    return user;
+  }
+
+  async deactivateAccount(userId: string, status: 'inactive' | 'payment_pending' | 'expired' = 'inactive'): Promise<UserDocument> {
+    const user = await this.userModel.findByIdAndUpdate(
+      userId,
+      {
+        $set: {
+          accountStatus: status,
+          plan: 'free',
+        },
+      },
+      { new: true },
+    ).exec();
+    if (!user) throw new NotFoundException('Usuário não encontrado');
+    return user;
+  }
 }

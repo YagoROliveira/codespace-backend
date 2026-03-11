@@ -5,6 +5,8 @@ import { Model, Types } from 'mongoose';
 import Stripe from 'stripe';
 import { Plan, PlanDocument } from '../plans/schemas/plan.schema';
 import { Subscription, SubscriptionDocument } from '../plans/schemas/subscription.schema';
+import { UsersService } from '../users/users.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class PaymentsService {
@@ -14,6 +16,8 @@ export class PaymentsService {
     private configService: ConfigService,
     @InjectModel(Plan.name) private planModel: Model<PlanDocument>,
     @InjectModel(Subscription.name) private subscriptionModel: Model<SubscriptionDocument>,
+    private usersService: UsersService,
+    private notificationsService: NotificationsService,
   ) {
     this.stripe = new Stripe(this.configService.get<string>('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2026-02-25.clover',
@@ -152,6 +156,26 @@ export class PaymentsService {
 
     await sub.save();
 
+    // Activate user account and update plan
+    const plan = await this.planModel.findById(sub.planId).exec();
+    const planSlug = plan?.slug || 'essencial';
+    await this.usersService.activateAccount(sub.userId.toString(), planSlug, sub.endDate);
+
+    // Send notifications
+    const user = await this.usersService.findById(sub.userId.toString());
+    await this.notificationsService.notifyAccountActivated({
+      studentName: user.name,
+      studentEmail: user.email,
+      planName: plan?.name || planSlug,
+    });
+    await this.notificationsService.notifyNewSubscription({
+      studentName: user.name,
+      studentEmail: user.email,
+      planName: plan?.name || planSlug,
+      billingCycle: sub.billingCycle,
+      amount: sub.amountPaid,
+    });
+
     return { status: 'succeeded', activated: true };
   }
 
@@ -190,6 +214,28 @@ export class PaymentsService {
 
     sub.status = 'active';
     await sub.save();
+
+    // Activate user account and update plan
+    const plan = await this.planModel.findById(sub.planId).exec();
+    const planSlug = plan?.slug || 'essencial';
+    await this.usersService.activateAccount(sub.userId.toString(), planSlug, sub.endDate);
+
+    // Send notifications
+    try {
+      const user = await this.usersService.findById(sub.userId.toString());
+      await this.notificationsService.notifyAccountActivated({
+        studentName: user.name,
+        studentEmail: user.email,
+        planName: plan?.name || planSlug,
+      });
+      await this.notificationsService.notifyNewSubscription({
+        studentName: user.name,
+        studentEmail: user.email,
+        planName: plan?.name || planSlug,
+        billingCycle: sub.billingCycle,
+        amount: sub.amountPaid,
+      });
+    } catch { }
   }
 
   private async handlePaymentFailed(paymentIntentId: string) {
@@ -198,6 +244,20 @@ export class PaymentsService {
 
     sub.status = 'past_due';
     await sub.save();
+
+    // Deactivate user account
+    await this.usersService.deactivateAccount(sub.userId.toString(), 'payment_pending');
+
+    // Send payment failed notification
+    try {
+      const user = await this.usersService.findById(sub.userId.toString());
+      const plan = await this.planModel.findById(sub.planId).exec();
+      await this.notificationsService.notifyPaymentFailed({
+        studentName: user.name,
+        studentEmail: user.email,
+        planName: plan?.name || 'Desconhecido',
+      });
+    } catch { }
   }
 
   /**

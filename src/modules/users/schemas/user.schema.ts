@@ -49,8 +49,14 @@ export class User {
   @Prop({ enum: ['essencial', 'profissional', 'elite', 'free'], default: 'free' })
   plan: string;
 
-  @Prop({ enum: ['active', 'inactive', 'suspended'], default: 'active' })
+  @Prop({ enum: ['active', 'inactive', 'suspended', 'pending'], default: 'active' })
   status: string;
+
+  @Prop({ enum: ['active', 'inactive', 'payment_pending', 'expired'], default: 'inactive' })
+  accountStatus: string;
+
+  @Prop()
+  subscriptionEndDate: Date;
 
   @Prop({ enum: ['user', 'admin', 'mentor'], default: 'user' })
   role: string;
