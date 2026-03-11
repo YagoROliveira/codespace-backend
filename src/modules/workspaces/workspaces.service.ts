@@ -50,7 +50,7 @@ Bons estudos! 🚀
 export class WorkspacesService {
   constructor(
     @InjectModel(Workspace.name) private workspaceModel: Model<WorkspaceDocument>,
-  ) {}
+  ) { }
 
   /**
    * Get or create workspace for a user
