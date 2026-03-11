@@ -75,9 +75,17 @@ __decorate([
     __metadata("design:type", String)
 ], User.prototype, "plan", void 0);
 __decorate([
-    (0, mongoose_1.Prop)({ enum: ['active', 'inactive', 'suspended'], default: 'active' }),
+    (0, mongoose_1.Prop)({ enum: ['active', 'inactive', 'suspended', 'pending'], default: 'active' }),
     __metadata("design:type", String)
 ], User.prototype, "status", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ enum: ['active', 'inactive', 'payment_pending', 'expired'], default: 'inactive' }),
+    __metadata("design:type", String)
+], User.prototype, "accountStatus", void 0);
+__decorate([
+    (0, mongoose_1.Prop)(),
+    __metadata("design:type", Date)
+], User.prototype, "subscriptionEndDate", void 0);
 __decorate([
     (0, mongoose_1.Prop)({ enum: ['user', 'admin', 'mentor'], default: 'user' }),
     __metadata("design:type", String)
@@ -98,6 +106,10 @@ __decorate([
     (0, mongoose_1.Prop)({ type: Object, default: {} }),
     __metadata("design:type", Object)
 ], User.prototype, "notificationPreferences", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ default: '' }),
+    __metadata("design:type", String)
+], User.prototype, "stripeCustomerId", void 0);
 __decorate([
     (0, mongoose_1.Prop)(),
     __metadata("design:type", Date)

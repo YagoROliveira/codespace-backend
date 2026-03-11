@@ -34,6 +34,18 @@ let PaymentsController = class PaymentsController {
     async getPaymentStatus(paymentIntentId) {
         return this.paymentsService.getPaymentStatus(paymentIntentId);
     }
+    async listPaymentMethods(user) {
+        return this.paymentsService.listPaymentMethods(user._id);
+    }
+    async createSetupIntent(user) {
+        return this.paymentsService.createSetupIntent(user._id);
+    }
+    async setDefaultPaymentMethod(user, paymentMethodId) {
+        return this.paymentsService.setDefaultPaymentMethod(user._id, paymentMethodId);
+    }
+    async removePaymentMethod(user, paymentMethodId) {
+        return this.paymentsService.removePaymentMethod(user._id, paymentMethodId);
+    }
     async handleWebhook(signature, req) {
         const rawBody = req.rawBody;
         if (!rawBody) {
@@ -75,6 +87,40 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], PaymentsController.prototype, "getPaymentStatus", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Get)('methods'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], PaymentsController.prototype, "listPaymentMethods", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Post)('methods/setup-intent'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], PaymentsController.prototype, "createSetupIntent", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Put)('methods/:id/default'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], PaymentsController.prototype, "setDefaultPaymentMethod", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Delete)('methods/:id'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], PaymentsController.prototype, "removePaymentMethod", null);
 __decorate([
     (0, public_decorator_1.Public)(),
     (0, common_1.Post)('webhook'),

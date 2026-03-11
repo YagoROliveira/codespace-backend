@@ -3,13 +3,35 @@ import { Model } from 'mongoose';
 import Stripe from 'stripe';
 import { PlanDocument } from '../plans/schemas/plan.schema';
 import { SubscriptionDocument } from '../plans/schemas/subscription.schema';
+import { UsersService } from '../users/users.service';
+import { NotificationsService } from '../notifications/notifications.service';
 export declare class PaymentsService {
     private configService;
     private planModel;
     private subscriptionModel;
+    private usersService;
+    private notificationsService;
     private stripe;
-    constructor(configService: ConfigService, planModel: Model<PlanDocument>, subscriptionModel: Model<SubscriptionDocument>);
+    constructor(configService: ConfigService, planModel: Model<PlanDocument>, subscriptionModel: Model<SubscriptionDocument>, usersService: UsersService, notificationsService: NotificationsService);
     getPublicKey(): string;
+    getOrCreateStripeCustomer(userId: string, email?: string, name?: string): Promise<string>;
+    listPaymentMethods(userId: string): Promise<{
+        id: string;
+        brand: string;
+        last4: string;
+        expMonth: number;
+        expYear: number;
+        isDefault: boolean;
+    }[]>;
+    createSetupIntent(userId: string): Promise<{
+        clientSecret: string;
+    }>;
+    setDefaultPaymentMethod(userId: string, paymentMethodId: string): Promise<{
+        success: boolean;
+    }>;
+    removePaymentMethod(userId: string, paymentMethodId: string): Promise<{
+        success: boolean;
+    }>;
     createPaymentIntent(userId: string, planSlug: string, billingCycle: 'monthly' | 'yearly', customerEmail: string, customerName: string): Promise<{
         clientSecret: string;
         paymentIntentId: string;

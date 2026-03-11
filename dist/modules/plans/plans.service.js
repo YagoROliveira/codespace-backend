@@ -18,10 +18,12 @@ const mongoose_1 = require("@nestjs/mongoose");
 const mongoose_2 = require("mongoose");
 const plan_schema_1 = require("./schemas/plan.schema");
 const subscription_schema_1 = require("./schemas/subscription.schema");
+const users_service_1 = require("../users/users.service");
 let PlansService = class PlansService {
-    constructor(planModel, subscriptionModel) {
+    constructor(planModel, subscriptionModel, usersService) {
         this.planModel = planModel;
         this.subscriptionModel = subscriptionModel;
+        this.usersService = usersService;
     }
     async getPlans() {
         return this.planModel.find({ isActive: true }).sort({ order: 1 }).exec();
@@ -69,6 +71,7 @@ let PlansService = class PlansService {
     }
     async cancelSubscription(userId) {
         await this.subscriptionModel.updateMany({ userId: new mongoose_2.Types.ObjectId(userId), status: 'active' }, { status: 'cancelled', cancelledAt: new Date() });
+        await this.usersService.deactivateAccount(userId, 'inactive');
     }
 };
 exports.PlansService = PlansService;
@@ -77,6 +80,7 @@ exports.PlansService = PlansService = __decorate([
     __param(0, (0, mongoose_1.InjectModel)(plan_schema_1.Plan.name)),
     __param(1, (0, mongoose_1.InjectModel)(subscription_schema_1.Subscription.name)),
     __metadata("design:paramtypes", [mongoose_2.Model,
-        mongoose_2.Model])
+        mongoose_2.Model,
+        users_service_1.UsersService])
 ], PlansService);
 //# sourceMappingURL=plans.service.js.map

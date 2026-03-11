@@ -56,6 +56,8 @@ export declare class AdminService {
         linkedin: string;
         plan: string;
         status: string;
+        accountStatus: string;
+        subscriptionEndDate: Date;
         role: string;
         mentorId: Types.ObjectId;
         streakDays: number;
@@ -67,6 +69,7 @@ export declare class AdminService {
             communityUpdates: boolean;
             weeklyReport: boolean;
         };
+        stripeCustomerId: string;
         lastLoginAt: Date;
         adminNotes: import("../users/schemas/user.schema").AdminNote[];
         _id: Types.ObjectId;
@@ -126,6 +129,8 @@ export declare class AdminService {
         linkedin: string;
         plan: string;
         status: string;
+        accountStatus: string;
+        subscriptionEndDate: Date;
         role: string;
         mentorId: Types.ObjectId;
         streakDays: number;
@@ -137,6 +142,7 @@ export declare class AdminService {
             communityUpdates: boolean;
             weeklyReport: boolean;
         };
+        stripeCustomerId: string;
         lastLoginAt: Date;
         adminNotes: import("../users/schemas/user.schema").AdminNote[];
         _id: Types.ObjectId;

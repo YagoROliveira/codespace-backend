@@ -13,6 +13,7 @@ export declare class AuthService {
             plan: string;
             role: string;
             avatar: string;
+            accountStatus: string;
         };
         token: string;
     }>;
@@ -24,6 +25,7 @@ export declare class AuthService {
             plan: string;
             role: string;
             avatar: string;
+            accountStatus: string;
         };
         token: string;
     }>;

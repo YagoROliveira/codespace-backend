@@ -67,6 +67,7 @@ let AuthService = class AuthService {
                 plan: user.plan,
                 role: user.role,
                 avatar: user.avatar,
+                accountStatus: user.accountStatus || 'inactive',
             },
             token,
         };
@@ -90,6 +91,7 @@ let AuthService = class AuthService {
                 plan: user.plan,
                 role: user.role,
                 avatar: user.avatar,
+                accountStatus: user.accountStatus || 'inactive',
             },
             token,
         };

@@ -35,6 +35,23 @@ export declare class PaymentsController {
         amount: number;
         paymentMethod: string;
     }>;
+    listPaymentMethods(user: any): Promise<{
+        id: string;
+        brand: string;
+        last4: string;
+        expMonth: number;
+        expYear: number;
+        isDefault: boolean;
+    }[]>;
+    createSetupIntent(user: any): Promise<{
+        clientSecret: string;
+    }>;
+    setDefaultPaymentMethod(user: any, paymentMethodId: string): Promise<{
+        success: boolean;
+    }>;
+    removePaymentMethod(user: any, paymentMethodId: string): Promise<{
+        success: boolean;
+    }>;
     handleWebhook(signature: string, req: RawBodyRequest<Request>): Promise<{
         received: boolean;
     } | {

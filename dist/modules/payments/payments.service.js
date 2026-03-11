@@ -23,17 +23,102 @@ const mongoose_2 = require("mongoose");
 const stripe_1 = __importDefault(require("stripe"));
 const plan_schema_1 = require("../plans/schemas/plan.schema");
 const subscription_schema_1 = require("../plans/schemas/subscription.schema");
+const users_service_1 = require("../users/users.service");
+const notifications_service_1 = require("../notifications/notifications.service");
 let PaymentsService = class PaymentsService {
-    constructor(configService, planModel, subscriptionModel) {
+    constructor(configService, planModel, subscriptionModel, usersService, notificationsService) {
         this.configService = configService;
         this.planModel = planModel;
         this.subscriptionModel = subscriptionModel;
+        this.usersService = usersService;
+        this.notificationsService = notificationsService;
         this.stripe = new stripe_1.default(this.configService.get('STRIPE_SECRET_KEY') || '', {
             apiVersion: '2026-02-25.clover',
         });
     }
     getPublicKey() {
         return this.configService.get('STRIPE_PUBLIC_KEY') || '';
+    }
+    async getOrCreateStripeCustomer(userId, email, name) {
+        let customerId = await this.usersService.getStripeCustomerId(userId);
+        if (customerId) {
+            if (email || name) {
+                await this.stripe.customers.update(customerId, {
+                    ...(email && { email }),
+                    ...(name && { name }),
+                });
+            }
+            return customerId;
+        }
+        const existingSub = await this.subscriptionModel.findOne({
+            userId: new mongoose_2.Types.ObjectId(userId),
+            stripeCustomerId: { $ne: '' },
+        }).sort({ createdAt: -1 });
+        if (existingSub?.stripeCustomerId) {
+            customerId = existingSub.stripeCustomerId;
+            if (email || name) {
+                await this.stripe.customers.update(customerId, {
+                    ...(email && { email }),
+                    ...(name && { name }),
+                });
+            }
+            await this.usersService.setStripeCustomerId(userId, customerId);
+            return customerId;
+        }
+        const user = await this.usersService.findById(userId);
+        const customer = await this.stripe.customers.create({
+            email: email || user.email,
+            name: name || user.name,
+            metadata: { userId: userId.toString() },
+        });
+        await this.usersService.setStripeCustomerId(userId, customer.id);
+        return customer.id;
+    }
+    async listPaymentMethods(userId) {
+        const customerId = await this.getOrCreateStripeCustomer(userId);
+        const methods = await this.stripe.customers.listPaymentMethods(customerId, { type: 'card' });
+        const customer = await this.stripe.customers.retrieve(customerId);
+        const defaultPmId = typeof customer.invoice_settings?.default_payment_method === 'string'
+            ? customer.invoice_settings.default_payment_method
+            : customer.invoice_settings?.default_payment_method?.id || null;
+        return methods.data.map((pm) => ({
+            id: pm.id,
+            brand: pm.card?.brand || 'unknown',
+            last4: pm.card?.last4 || '****',
+            expMonth: pm.card?.exp_month || 0,
+            expYear: pm.card?.exp_year || 0,
+            isDefault: pm.id === defaultPmId,
+        }));
+    }
+    async createSetupIntent(userId) {
+        const customerId = await this.getOrCreateStripeCustomer(userId);
+        const setupIntent = await this.stripe.setupIntents.create({
+            customer: customerId,
+            payment_method_types: ['card'],
+        });
+        return {
+            clientSecret: setupIntent.client_secret,
+        };
+    }
+    async setDefaultPaymentMethod(userId, paymentMethodId) {
+        const customerId = await this.getOrCreateStripeCustomer(userId);
+        const pm = await this.stripe.paymentMethods.retrieve(paymentMethodId);
+        if (pm.customer !== customerId) {
+            throw new common_1.BadRequestException('Método de pagamento não pertence a este cliente');
+        }
+        await this.stripe.customers.update(customerId, {
+            invoice_settings: { default_payment_method: paymentMethodId },
+        });
+        return { success: true };
+    }
+    async removePaymentMethod(userId, paymentMethodId) {
+        const customerId = await this.getOrCreateStripeCustomer(userId);
+        const pm = await this.stripe.paymentMethods.retrieve(paymentMethodId);
+        if (pm.customer !== customerId) {
+            throw new common_1.BadRequestException('Método de pagamento não pertence a este cliente');
+        }
+        await this.stripe.paymentMethods.detach(paymentMethodId);
+        return { success: true };
     }
     async createPaymentIntent(userId, planSlug, billingCycle = 'monthly', customerEmail, customerName) {
         const plan = await this.planModel.findOne({ slug: planSlug, isActive: true });
@@ -43,26 +128,7 @@ let PaymentsService = class PaymentsService {
         if (!amount || amount <= 0)
             throw new common_1.BadRequestException('Preço inválido para este plano');
         const amountInCents = Math.round(amount * 100);
-        let customerId;
-        const existingSub = await this.subscriptionModel.findOne({
-            userId: new mongoose_2.Types.ObjectId(userId),
-            stripeCustomerId: { $ne: '' },
-        }).sort({ createdAt: -1 });
-        if (existingSub?.stripeCustomerId) {
-            customerId = existingSub.stripeCustomerId;
-            await this.stripe.customers.update(customerId, {
-                email: customerEmail,
-                name: customerName,
-            });
-        }
-        else {
-            const customer = await this.stripe.customers.create({
-                email: customerEmail,
-                name: customerName,
-                metadata: { userId: userId.toString() },
-            });
-            customerId = customer.id;
-        }
+        const customerId = await this.getOrCreateStripeCustomer(userId, customerEmail, customerName);
         const paymentIntent = await this.stripe.paymentIntents.create({
             amount: amountInCents,
             currency: 'brl',
@@ -125,6 +191,22 @@ let PaymentsService = class PaymentsService {
             catch { }
         }
         await sub.save();
+        const plan = await this.planModel.findById(sub.planId).exec();
+        const planSlug = plan?.slug || 'essencial';
+        await this.usersService.activateAccount(sub.userId.toString(), planSlug, sub.endDate);
+        const user = await this.usersService.findById(sub.userId.toString());
+        await this.notificationsService.notifyAccountActivated({
+            studentName: user.name,
+            studentEmail: user.email,
+            planName: plan?.name || planSlug,
+        });
+        await this.notificationsService.notifyNewSubscription({
+            studentName: user.name,
+            studentEmail: user.email,
+            planName: plan?.name || planSlug,
+            billingCycle: sub.billingCycle,
+            amount: sub.amountPaid,
+        });
         return { status: 'succeeded', activated: true };
     }
     async handleWebhook(signature, rawBody) {
@@ -156,6 +238,25 @@ let PaymentsService = class PaymentsService {
             return;
         sub.status = 'active';
         await sub.save();
+        const plan = await this.planModel.findById(sub.planId).exec();
+        const planSlug = plan?.slug || 'essencial';
+        await this.usersService.activateAccount(sub.userId.toString(), planSlug, sub.endDate);
+        try {
+            const user = await this.usersService.findById(sub.userId.toString());
+            await this.notificationsService.notifyAccountActivated({
+                studentName: user.name,
+                studentEmail: user.email,
+                planName: plan?.name || planSlug,
+            });
+            await this.notificationsService.notifyNewSubscription({
+                studentName: user.name,
+                studentEmail: user.email,
+                planName: plan?.name || planSlug,
+                billingCycle: sub.billingCycle,
+                amount: sub.amountPaid,
+            });
+        }
+        catch { }
     }
     async handlePaymentFailed(paymentIntentId) {
         const sub = await this.subscriptionModel.findOne({ stripePaymentIntentId: paymentIntentId });
@@ -163,6 +264,17 @@ let PaymentsService = class PaymentsService {
             return;
         sub.status = 'past_due';
         await sub.save();
+        await this.usersService.deactivateAccount(sub.userId.toString(), 'payment_pending');
+        try {
+            const user = await this.usersService.findById(sub.userId.toString());
+            const plan = await this.planModel.findById(sub.planId).exec();
+            await this.notificationsService.notifyPaymentFailed({
+                studentName: user.name,
+                studentEmail: user.email,
+                planName: plan?.name || 'Desconhecido',
+            });
+        }
+        catch { }
     }
     async getPaymentStatus(paymentIntentId) {
         const pi = await this.stripe.paymentIntents.retrieve(paymentIntentId);
@@ -180,6 +292,8 @@ exports.PaymentsService = PaymentsService = __decorate([
     __param(2, (0, mongoose_1.InjectModel)(subscription_schema_1.Subscription.name)),
     __metadata("design:paramtypes", [config_1.ConfigService,
         mongoose_2.Model,
-        mongoose_2.Model])
+        mongoose_2.Model,
+        users_service_1.UsersService,
+        notifications_service_1.NotificationsService])
 ], PaymentsService);
 //# sourceMappingURL=payments.service.js.map

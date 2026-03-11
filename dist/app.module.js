@@ -26,6 +26,7 @@ const checkins_module_1 = require("./modules/checkins/checkins.module");
 const projects_module_1 = require("./modules/projects/projects.module");
 const resources_module_1 = require("./modules/resources/resources.module");
 const payments_module_1 = require("./modules/payments/payments.module");
+const notifications_module_1 = require("./modules/notifications/notifications.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -59,6 +60,7 @@ exports.AppModule = AppModule = __decorate([
             projects_module_1.ProjectsModule,
             resources_module_1.ResourcesModule,
             payments_module_1.PaymentsModule,
+            notifications_module_1.NotificationsModule,
         ],
     })
 ], AppModule);

@@ -110,6 +110,36 @@ let UsersService = class UsersService {
         if (!result)
             throw new common_1.NotFoundException('Usuário não encontrado');
     }
+    async activateAccount(userId, plan, subscriptionEndDate) {
+        const user = await this.userModel.findByIdAndUpdate(userId, {
+            $set: {
+                accountStatus: 'active',
+                plan,
+                subscriptionEndDate,
+            },
+        }, { new: true }).exec();
+        if (!user)
+            throw new common_1.NotFoundException('Usuário não encontrado');
+        return user;
+    }
+    async deactivateAccount(userId, status = 'inactive') {
+        const user = await this.userModel.findByIdAndUpdate(userId, {
+            $set: {
+                accountStatus: status,
+                plan: 'free',
+            },
+        }, { new: true }).exec();
+        if (!user)
+            throw new common_1.NotFoundException('Usuário não encontrado');
+        return user;
+    }
+    async getStripeCustomerId(userId) {
+        const user = await this.findById(userId);
+        return user.stripeCustomerId || '';
+    }
+    async setStripeCustomerId(userId, customerId) {
+        await this.userModel.findByIdAndUpdate(userId, { stripeCustomerId: customerId }).exec();
+    }
 };
 exports.UsersService = UsersService;
 exports.UsersService = UsersService = __decorate([

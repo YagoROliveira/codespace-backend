@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Param, Headers, Req, UseGuards, RawBodyRequest } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Body, Param, Headers, Req, UseGuards, RawBodyRequest } from '@nestjs/common';
 import { Request } from 'express';
 import { PaymentsService } from './payments.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -52,6 +52,50 @@ export class PaymentsController {
   @Get('status/:paymentIntentId')
   async getPaymentStatus(@Param('paymentIntentId') paymentIntentId: string) {
     return this.paymentsService.getPaymentStatus(paymentIntentId);
+  }
+
+  // ─── Payment Method Management ───
+
+  /**
+   * List saved payment methods (cards)
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('methods')
+  async listPaymentMethods(@CurrentUser() user: any) {
+    return this.paymentsService.listPaymentMethods(user._id);
+  }
+
+  /**
+   * Create a SetupIntent for adding a new card
+   */
+  @UseGuards(JwtAuthGuard)
+  @Post('methods/setup-intent')
+  async createSetupIntent(@CurrentUser() user: any) {
+    return this.paymentsService.createSetupIntent(user._id);
+  }
+
+  /**
+   * Set a payment method as default
+   */
+  @UseGuards(JwtAuthGuard)
+  @Put('methods/:id/default')
+  async setDefaultPaymentMethod(
+    @CurrentUser() user: any,
+    @Param('id') paymentMethodId: string,
+  ) {
+    return this.paymentsService.setDefaultPaymentMethod(user._id, paymentMethodId);
+  }
+
+  /**
+   * Remove a payment method
+   */
+  @UseGuards(JwtAuthGuard)
+  @Delete('methods/:id')
+  async removePaymentMethod(
+    @CurrentUser() user: any,
+    @Param('id') paymentMethodId: string,
+  ) {
+    return this.paymentsService.removePaymentMethod(user._id, paymentMethodId);
   }
 
   /**

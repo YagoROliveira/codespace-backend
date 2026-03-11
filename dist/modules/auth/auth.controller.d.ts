@@ -11,6 +11,7 @@ export declare class AuthController {
             plan: string;
             role: string;
             avatar: string;
+            accountStatus: string;
         };
         token: string;
     }>;
@@ -22,6 +23,7 @@ export declare class AuthController {
             plan: string;
             role: string;
             avatar: string;
+            accountStatus: string;
         };
         token: string;
     }>;

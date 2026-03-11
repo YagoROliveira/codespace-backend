@@ -17,4 +17,8 @@ export declare class UsersService {
     updateNotifications(id: string, dto: UpdateNotificationsDto): Promise<UserDocument>;
     updateLastLogin(id: string): Promise<void>;
     deleteUser(id: string): Promise<void>;
+    activateAccount(userId: string, plan: string, subscriptionEndDate: Date): Promise<UserDocument>;
+    deactivateAccount(userId: string, status?: 'inactive' | 'payment_pending' | 'expired'): Promise<UserDocument>;
+    getStripeCustomerId(userId: string): Promise<string>;
+    setStripeCustomerId(userId: string, customerId: string): Promise<void>;
 }

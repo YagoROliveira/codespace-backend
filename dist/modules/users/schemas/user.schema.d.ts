@@ -26,6 +26,8 @@ export declare class User {
     linkedin: string;
     plan: string;
     status: string;
+    accountStatus: string;
+    subscriptionEndDate: Date;
     role: string;
     mentorId: Types.ObjectId;
     streakDays: number;
@@ -37,6 +39,7 @@ export declare class User {
         communityUpdates: boolean;
         weeklyReport: boolean;
     };
+    stripeCustomerId: string;
     lastLoginAt: Date;
     adminNotes: AdminNote[];
 }

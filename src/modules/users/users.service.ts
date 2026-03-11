@@ -105,4 +105,13 @@ export class UsersService {
     if (!user) throw new NotFoundException('Usuário não encontrado');
     return user;
   }
+
+  async getStripeCustomerId(userId: string): Promise<string> {
+    const user = await this.findById(userId);
+    return user.stripeCustomerId || '';
+  }
+
+  async setStripeCustomerId(userId: string, customerId: string): Promise<void> {
+    await this.userModel.findByIdAndUpdate(userId, { stripeCustomerId: customerId }).exec();
+  }
 }

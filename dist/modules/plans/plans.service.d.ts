@@ -1,10 +1,12 @@
 import { Model } from 'mongoose';
 import { PlanDocument } from './schemas/plan.schema';
 import { SubscriptionDocument } from './schemas/subscription.schema';
+import { UsersService } from '../users/users.service';
 export declare class PlansService {
     private planModel;
     private subscriptionModel;
-    constructor(planModel: Model<PlanDocument>, subscriptionModel: Model<SubscriptionDocument>);
+    private readonly usersService;
+    constructor(planModel: Model<PlanDocument>, subscriptionModel: Model<SubscriptionDocument>, usersService: UsersService);
     getPlans(): Promise<PlanDocument[]>;
     getPlanBySlug(slug: string): Promise<PlanDocument>;
     getUserSubscription(userId: string): Promise<any>;

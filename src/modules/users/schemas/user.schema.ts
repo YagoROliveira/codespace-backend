@@ -79,6 +79,9 @@ export class User {
     weeklyReport: boolean;
   };
 
+  @Prop({ default: '' })
+  stripeCustomerId: string;
+
   @Prop()
   lastLoginAt: Date;
 

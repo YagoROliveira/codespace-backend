@@ -32,6 +32,134 @@ export class PaymentsService {
   }
 
   /**
+   * Get or create a Stripe customer for the user, persisting
+   * the customer ID on the User document for future reuse.
+   */
+  async getOrCreateStripeCustomer(userId: string, email?: string, name?: string): Promise<string> {
+    // 1) Check User document first
+    let customerId = await this.usersService.getStripeCustomerId(userId);
+
+    if (customerId) {
+      // Optionally update Stripe customer info
+      if (email || name) {
+        await this.stripe.customers.update(customerId, {
+          ...(email && { email }),
+          ...(name && { name }),
+        });
+      }
+      return customerId;
+    }
+
+    // 2) Fallback: check existing subscriptions (legacy)
+    const existingSub = await this.subscriptionModel.findOne({
+      userId: new Types.ObjectId(userId),
+      stripeCustomerId: { $ne: '' },
+    }).sort({ createdAt: -1 });
+
+    if (existingSub?.stripeCustomerId) {
+      customerId = existingSub.stripeCustomerId;
+      if (email || name) {
+        await this.stripe.customers.update(customerId, {
+          ...(email && { email }),
+          ...(name && { name }),
+        });
+      }
+      // Persist on user for future lookups
+      await this.usersService.setStripeCustomerId(userId, customerId);
+      return customerId;
+    }
+
+    // 3) Create a brand-new Stripe customer
+    const user = await this.usersService.findById(userId);
+    const customer = await this.stripe.customers.create({
+      email: email || user.email,
+      name: name || user.name,
+      metadata: { userId: userId.toString() },
+    });
+    await this.usersService.setStripeCustomerId(userId, customer.id);
+    return customer.id;
+  }
+
+  // ─── Payment Method Management ───
+
+  /**
+   * List all payment methods (cards) for a user
+   */
+  async listPaymentMethods(userId: string) {
+    const customerId = await this.getOrCreateStripeCustomer(userId);
+
+    const methods = await this.stripe.customers.listPaymentMethods(customerId, { type: 'card' });
+
+    // Get the default payment method from the customer
+    const customer = await this.stripe.customers.retrieve(customerId) as Stripe.Customer;
+    const defaultPmId =
+      typeof customer.invoice_settings?.default_payment_method === 'string'
+        ? customer.invoice_settings.default_payment_method
+        : (customer.invoice_settings?.default_payment_method as Stripe.PaymentMethod)?.id || null;
+
+    return methods.data.map((pm) => ({
+      id: pm.id,
+      brand: pm.card?.brand || 'unknown',
+      last4: pm.card?.last4 || '****',
+      expMonth: pm.card?.exp_month || 0,
+      expYear: pm.card?.exp_year || 0,
+      isDefault: pm.id === defaultPmId,
+    }));
+  }
+
+  /**
+   * Create a SetupIntent so the frontend can collect a new card via Stripe Elements
+   */
+  async createSetupIntent(userId: string) {
+    const customerId = await this.getOrCreateStripeCustomer(userId);
+
+    const setupIntent = await this.stripe.setupIntents.create({
+      customer: customerId,
+      payment_method_types: ['card'],
+    });
+
+    return {
+      clientSecret: setupIntent.client_secret,
+    };
+  }
+
+  /**
+   * Set a payment method as the customer's default
+   */
+  async setDefaultPaymentMethod(userId: string, paymentMethodId: string) {
+    const customerId = await this.getOrCreateStripeCustomer(userId);
+
+    // Ensure the payment method is attached to this customer
+    const pm = await this.stripe.paymentMethods.retrieve(paymentMethodId);
+    if (pm.customer !== customerId) {
+      throw new BadRequestException('Método de pagamento não pertence a este cliente');
+    }
+
+    await this.stripe.customers.update(customerId, {
+      invoice_settings: { default_payment_method: paymentMethodId },
+    });
+
+    return { success: true };
+  }
+
+  /**
+   * Remove (detach) a payment method from the customer
+   */
+  async removePaymentMethod(userId: string, paymentMethodId: string) {
+    const customerId = await this.getOrCreateStripeCustomer(userId);
+
+    // Verify ownership
+    const pm = await this.stripe.paymentMethods.retrieve(paymentMethodId);
+    if (pm.customer !== customerId) {
+      throw new BadRequestException('Método de pagamento não pertence a este cliente');
+    }
+
+    await this.stripe.paymentMethods.detach(paymentMethodId);
+
+    return { success: true };
+  }
+
+  /**
    * Create a PaymentIntent for transparent checkout
    * Supports card, pix, and boleto payment methods
    */
@@ -51,28 +179,8 @@ export class PaymentsService {
     // Amount in centavos (Stripe uses smallest currency unit)
     const amountInCents = Math.round(amount * 100);
 
-    // Find or create Stripe customer
-    let customerId: string;
-    const existingSub = await this.subscriptionModel.findOne({
-      userId: new Types.ObjectId(userId),
-      stripeCustomerId: { $ne: '' },
-    }).sort({ createdAt: -1 });
-
-    if (existingSub?.stripeCustomerId) {
-      customerId = existingSub.stripeCustomerId;
-      // Update customer info
-      await this.stripe.customers.update(customerId, {
-        email: customerEmail,
-        name: customerName,
-      });
-    } else {
-      const customer = await this.stripe.customers.create({
-        email: customerEmail,
-        name: customerName,
-        metadata: { userId: userId.toString() },
-      });
-      customerId = customer.id;
-    }
+    // Find or create Stripe customer (now uses consolidated helper)
+    const customerId = await this.getOrCreateStripeCustomer(userId, customerEmail, customerName);
 
     // Create PaymentIntent with multiple payment method types
     const paymentIntent = await this.stripe.paymentIntents.create({

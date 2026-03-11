@@ -14,6 +14,8 @@ const payments_controller_1 = require("./payments.controller");
 const payments_service_1 = require("./payments.service");
 const plan_schema_1 = require("../plans/schemas/plan.schema");
 const subscription_schema_1 = require("../plans/schemas/subscription.schema");
+const users_module_1 = require("../users/users.module");
+const notifications_module_1 = require("../notifications/notifications.module");
 let PaymentsModule = class PaymentsModule {
 };
 exports.PaymentsModule = PaymentsModule;
@@ -25,6 +27,8 @@ exports.PaymentsModule = PaymentsModule = __decorate([
                 { name: plan_schema_1.Plan.name, schema: plan_schema_1.PlanSchema },
                 { name: subscription_schema_1.Subscription.name, schema: subscription_schema_1.SubscriptionSchema },
             ]),
+            users_module_1.UsersModule,
+            notifications_module_1.NotificationsModule,
         ],
         controllers: [payments_controller_1.PaymentsController],
         providers: [payments_service_1.PaymentsService],
