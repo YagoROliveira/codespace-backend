@@ -6,4 +6,4 @@ import { GoogleCalendarService } from './google-calendar.service';
   providers: [GoogleCalendarService],
   exports: [GoogleCalendarService],
 })
-export class GoogleCalendarModule {}
+export class GoogleCalendarModule { }
