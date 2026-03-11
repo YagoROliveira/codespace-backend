@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { EmailTemplateService } from './email-template.service';
 
 interface EmailOptions {
   to: string;
@@ -17,7 +18,10 @@ export class NotificationsService {
   private readonly smtpPass: string;
   private readonly fromEmail: string;
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    private emailTemplateService: EmailTemplateService,
+  ) {
     this.adminEmail = this.configService.get<string>('ADMIN_EMAIL') || '';
     this.smtpHost = this.configService.get<string>('SMTP_HOST') || '';
     this.smtpPort = parseInt(this.configService.get<string>('SMTP_PORT') || '587', 10);
@@ -76,11 +80,26 @@ export class NotificationsService {
     amount: number;
   }): Promise<void> {
     const adminEmails = this.adminEmail || 'admin@codespace.com.br';
+    const year = new Date().getFullYear().toString();
+    const date = new Date().toLocaleDateString('pt-BR');
 
+    const rendered = await this.emailTemplateService.renderTemplate(
+      'purchase-confirmation',
+      {
+        studentName: data.studentName,
+        planName: data.planName,
+        billingCycle: data.billingCycle === 'yearly' ? 'Anual' : 'Mensal',
+        amount: data.amount.toFixed(2),
+        date,
+        year,
+      },
+    );
+
+    // Send to admin
     await this.sendEmail({
       to: adminEmails,
-      subject: `🎉 Nova Assinatura - ${data.studentName} (${data.planName})`,
-      html: this.newSubscriptionTemplate(data),
+      subject: rendered?.subject || `🎉 Nova Assinatura - ${data.studentName} (${data.planName})`,
+      html: rendered?.html || this.fallbackNewSubscriptionHtml(data),
     });
   }
 
@@ -91,11 +110,28 @@ export class NotificationsService {
     studentName: string;
     studentEmail: string;
     planName: string;
+    billingCycle?: string;
+    amount?: number;
   }): Promise<void> {
+    const year = new Date().getFullYear().toString();
+    const date = new Date().toLocaleDateString('pt-BR');
+
+    const rendered = await this.emailTemplateService.renderTemplate(
+      'purchase-confirmation',
+      {
+        studentName: data.studentName,
+        planName: data.planName,
+        billingCycle: data.billingCycle === 'yearly' ? 'Anual' : 'Mensal',
+        amount: data.amount ? data.amount.toFixed(2) : '—',
+        date,
+        year,
+      },
+    );
+
     await this.sendEmail({
       to: data.studentEmail,
-      subject: `✅ Conta Ativada - Bem-vindo ao Codespace, ${data.studentName}!`,
-      html: this.accountActivatedTemplate(data),
+      subject: rendered?.subject || `✅ Conta Ativada - Bem-vindo ao Codespace, ${data.studentName}!`,
+      html: rendered?.html || this.fallbackAccountActivatedHtml(data),
     });
   }
 
@@ -110,7 +146,7 @@ export class NotificationsService {
     await this.sendEmail({
       to: data.studentEmail,
       subject: `⚠️ Conta Suspensa - Pendência de Pagamento`,
-      html: this.accountDeactivatedTemplate(data),
+      html: this.fallbackAccountDeactivatedHtml(data),
     });
   }
 
@@ -125,7 +161,7 @@ export class NotificationsService {
     await this.sendEmail({
       to: data.studentEmail,
       subject: `❌ Falha no Pagamento - Codespace`,
-      html: this.paymentFailedTemplate(data),
+      html: this.fallbackPaymentFailedHtml(data),
     });
 
     // Also notify admin
@@ -138,9 +174,68 @@ export class NotificationsService {
     }
   }
 
-  // ─── Email Templates ───
+  /**
+   * Notify student about subscription cancellation
+   */
+  async notifySubscriptionCancelled(data: {
+    studentName: string;
+    studentEmail: string;
+    planName: string;
+  }): Promise<void> {
+    const year = new Date().getFullYear().toString();
 
-  private newSubscriptionTemplate(data: {
+    const rendered = await this.emailTemplateService.renderTemplate(
+      'subscription-cancelled',
+      {
+        studentName: data.studentName,
+        planName: data.planName,
+        year,
+      },
+    );
+
+    await this.sendEmail({
+      to: data.studentEmail,
+      subject: rendered?.subject || `😢 Sua assinatura foi cancelada - Codespace`,
+      html: rendered?.html || `<p>Olá ${data.studentName}, sua assinatura do plano ${data.planName} foi cancelada.</p>`,
+    });
+  }
+
+  /**
+   * Notify student about abandoned checkout
+   */
+  async notifyAbandonedCheckout(data: {
+    studentName: string;
+    studentEmail: string;
+    planName: string;
+    planSlug: string;
+    billingCycle: string;
+    amount: number;
+  }): Promise<void> {
+    const year = new Date().getFullYear().toString();
+
+    const rendered = await this.emailTemplateService.renderTemplate(
+      'abandoned-checkout',
+      {
+        studentName: data.studentName,
+        planName: data.planName,
+        planSlug: data.planSlug,
+        billingCycle: data.billingCycle === 'yearly' ? 'Anual' : 'Mensal',
+        billingCycleShort: data.billingCycle === 'yearly' ? 'ano' : 'mês',
+        amount: data.amount.toFixed(2),
+        year,
+      },
+    );
+
+    await this.sendEmail({
+      to: data.studentEmail,
+      subject: rendered?.subject || `🛒 Você esqueceu algo? Finalize sua assinatura - Codespace`,
+      html: rendered?.html || `<p>Olá ${data.studentName}, você não finalizou a assinatura do plano ${data.planName}.</p>`,
+    });
+  }
+
+  // ─── Fallback Inline Templates (used when file template is unavailable) ───
+
+  private fallbackNewSubscriptionHtml(data: {
     studentName: string;
     studentEmail: string;
     planName: string;
@@ -162,7 +257,7 @@ export class NotificationsService {
     `;
   }
 
-  private accountActivatedTemplate(data: {
+  private fallbackAccountActivatedHtml(data: {
     studentName: string;
     studentEmail: string;
     planName: string;
@@ -181,7 +276,7 @@ export class NotificationsService {
     `;
   }
 
-  private accountDeactivatedTemplate(data: {
+  private fallbackAccountDeactivatedHtml(data: {
     studentName: string;
     studentEmail: string;
     reason: string;
@@ -200,7 +295,7 @@ export class NotificationsService {
     `;
   }
 
-  private paymentFailedTemplate(data: {
+  private fallbackPaymentFailedHtml(data: {
     studentName: string;
     studentEmail: string;
     planName: string;

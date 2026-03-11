@@ -19,11 +19,13 @@ const mongoose_2 = require("mongoose");
 const plan_schema_1 = require("./schemas/plan.schema");
 const subscription_schema_1 = require("./schemas/subscription.schema");
 const users_service_1 = require("../users/users.service");
+const notifications_service_1 = require("../notifications/notifications.service");
 let PlansService = class PlansService {
-    constructor(planModel, subscriptionModel, usersService) {
+    constructor(planModel, subscriptionModel, usersService, notificationsService) {
         this.planModel = planModel;
         this.subscriptionModel = subscriptionModel;
         this.usersService = usersService;
+        this.notificationsService = notificationsService;
     }
     async getPlans() {
         return this.planModel.find({ isActive: true }).sort({ order: 1 }).exec();
@@ -70,8 +72,23 @@ let PlansService = class PlansService {
         return subscription.save();
     }
     async cancelSubscription(userId) {
+        const activeSubscription = await this.subscriptionModel
+            .findOne({ userId: new mongoose_2.Types.ObjectId(userId), status: 'active' })
+            .populate('planId')
+            .exec();
         await this.subscriptionModel.updateMany({ userId: new mongoose_2.Types.ObjectId(userId), status: 'active' }, { status: 'cancelled', cancelledAt: new Date() });
         await this.usersService.deactivateAccount(userId, 'inactive');
+        if (activeSubscription) {
+            const user = await this.usersService.findById(userId);
+            if (user) {
+                const plan = activeSubscription.planId;
+                await this.notificationsService.notifySubscriptionCancelled({
+                    studentName: user.name || user.email,
+                    studentEmail: user.email,
+                    planName: plan?.name || 'Codespace',
+                });
+            }
+        }
     }
 };
 exports.PlansService = PlansService;
@@ -81,6 +98,7 @@ exports.PlansService = PlansService = __decorate([
     __param(1, (0, mongoose_1.InjectModel)(subscription_schema_1.Subscription.name)),
     __metadata("design:paramtypes", [mongoose_2.Model,
         mongoose_2.Model,
-        users_service_1.UsersService])
+        users_service_1.UsersService,
+        notifications_service_1.NotificationsService])
 ], PlansService);
 //# sourceMappingURL=plans.service.js.map

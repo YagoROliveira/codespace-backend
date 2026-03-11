@@ -4,6 +4,7 @@ import { Model, Types } from 'mongoose';
 import { Plan, PlanDocument } from './schemas/plan.schema';
 import { Subscription, SubscriptionDocument } from './schemas/subscription.schema';
 import { UsersService } from '../users/users.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class PlansService {
@@ -11,6 +12,7 @@ export class PlansService {
     @InjectModel(Plan.name) private planModel: Model<PlanDocument>,
     @InjectModel(Subscription.name) private subscriptionModel: Model<SubscriptionDocument>,
     private readonly usersService: UsersService,
+    private readonly notificationsService: NotificationsService,
   ) { }
 
   async getPlans(): Promise<PlanDocument[]> {
@@ -75,11 +77,30 @@ export class PlansService {
   }
 
   async cancelSubscription(userId: string): Promise<void> {
+    // Get active subscription + plan details before cancelling
+    const activeSubscription = await this.subscriptionModel
+      .findOne({ userId: new Types.ObjectId(userId), status: 'active' })
+      .populate('planId')
+      .exec();
+
     await this.subscriptionModel.updateMany(
       { userId: new Types.ObjectId(userId), status: 'active' },
       { status: 'cancelled', cancelledAt: new Date() },
     );
     // Deactivate the user account and revert to free plan
     await this.usersService.deactivateAccount(userId, 'inactive');
+
+    // Send cancellation email
+    if (activeSubscription) {
+      const user = await this.usersService.findById(userId);
+      if (user) {
+        const plan = activeSubscription.planId as any;
+        await this.notificationsService.notifySubscriptionCancelled({
+          studentName: user.name || user.email,
+          studentEmail: user.email,
+          planName: plan?.name || 'Codespace',
+        });
+      }
+    }
   }
 }

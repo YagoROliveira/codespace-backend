@@ -14,6 +14,7 @@ const plans_service_1 = require("./plans.service");
 const plan_schema_1 = require("./schemas/plan.schema");
 const subscription_schema_1 = require("./schemas/subscription.schema");
 const users_module_1 = require("../users/users.module");
+const notifications_module_1 = require("../notifications/notifications.module");
 let PlansModule = class PlansModule {
 };
 exports.PlansModule = PlansModule;
@@ -25,6 +26,7 @@ exports.PlansModule = PlansModule = __decorate([
                 { name: subscription_schema_1.Subscription.name, schema: subscription_schema_1.SubscriptionSchema },
             ]),
             users_module_1.UsersModule,
+            notifications_module_1.NotificationsModule,
         ],
         controllers: [plans_controller_1.PlansController],
         providers: [plans_service_1.PlansService],

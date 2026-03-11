@@ -5,6 +5,7 @@ import { PlansService } from './plans.service';
 import { Plan, PlanSchema } from './schemas/plan.schema';
 import { Subscription, SubscriptionSchema } from './schemas/subscription.schema';
 import { UsersModule } from '../users/users.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { UsersModule } from '../users/users.module';
       { name: Subscription.name, schema: SubscriptionSchema },
     ]),
     UsersModule,
+    NotificationsModule,
   ],
   controllers: [PlansController],
   providers: [PlansService],
