@@ -108,6 +108,29 @@ export class AdminController {
     return this.adminService.assignMentor(studentId, mentorId);
   }
 
+  @Post('students/:id/grant-access')
+  async grantAccess(
+    @Param('id') studentId: string,
+    @CurrentUser('_id') adminId: string,
+    @Body() data: {
+      plan: string;
+      duration: number | null;
+      reason?: string;
+      createSubscription?: boolean;
+    },
+  ): Promise<any> {
+    return this.adminService.grantAccess(studentId, adminId, data);
+  }
+
+  @Post('students/:id/revoke-access')
+  async revokeAccess(
+    @Param('id') studentId: string,
+    @CurrentUser('_id') adminId: string,
+    @Body() data: { reason?: string },
+  ): Promise<any> {
+    return this.adminService.revokeAccess(studentId, adminId, data.reason);
+  }
+
   // ===================== STUDENT TRACKS =====================
   @Post('students/:id/tracks')
   async enrollStudentInTrack(

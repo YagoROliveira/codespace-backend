@@ -276,6 +276,126 @@ export class AdminService {
     return student;
   }
 
+  async grantAccess(
+    studentId: string,
+    adminId: string,
+    data: {
+      plan: string;
+      duration: number | null; // days, null = unlimited
+      reason?: string;
+      createSubscription?: boolean;
+    },
+  ) {
+    const student = await this.userModel.findById(studentId);
+    if (!student) throw new NotFoundException('Aluno não encontrado');
+
+    // Calculate subscription end date
+    const now = new Date();
+    let subscriptionEndDate: Date | null = null;
+    if (data.duration && data.duration > 0) {
+      subscriptionEndDate = new Date(now);
+      subscriptionEndDate.setDate(subscriptionEndDate.getDate() + data.duration);
+    }
+
+    // Update user fields
+    const updateFields: Record<string, any> = {
+      plan: data.plan,
+      accountStatus: 'active',
+      status: 'active',
+      updatedAt: now,
+    };
+    if (subscriptionEndDate) {
+      updateFields.subscriptionEndDate = subscriptionEndDate;
+    } else {
+      // Unlimited — clear end date
+      updateFields.subscriptionEndDate = null;
+    }
+
+    // Add admin note about the grant
+    const noteContent = data.reason
+      ? `[Liberação de Acesso] Plano: ${data.plan}, Duração: ${data.duration ? data.duration + ' dias' : 'ilimitado'}. Motivo: ${data.reason}`
+      : `[Liberação de Acesso] Plano: ${data.plan}, Duração: ${data.duration ? data.duration + ' dias' : 'ilimitado'}`;
+
+    const updatedStudent = await this.userModel.findByIdAndUpdate(
+      studentId,
+      {
+        ...updateFields,
+        $push: {
+          adminNotes: {
+            _id: new Types.ObjectId(),
+            authorId: new Types.ObjectId(adminId),
+            content: noteContent,
+            createdAt: now,
+          },
+        },
+      },
+      { new: true },
+    ).select('-password');
+
+    // Optionally create a subscription record
+    if (data.createSubscription !== false) {
+      // Find the plan by slug
+      const planDoc = await this.planModel.findOne({ slug: data.plan });
+      if (planDoc) {
+        // Cancel any existing active subscription
+        await this.subscriptionModel.updateMany(
+          { userId: new Types.ObjectId(studentId), status: 'active' },
+          { status: 'cancelled', cancelledAt: now },
+        );
+
+        await this.subscriptionModel.create({
+          userId: new Types.ObjectId(studentId),
+          planId: planDoc._id,
+          status: 'active',
+          startDate: now,
+          endDate: subscriptionEndDate || undefined,
+          billingCycle: 'monthly',
+          amountPaid: 0,
+          paymentMethod: 'admin_grant',
+        });
+      }
+    }
+
+    return updatedStudent;
+  }
+
+  async revokeAccess(studentId: string, adminId: string, reason?: string) {
+    const student = await this.userModel.findById(studentId);
+    if (!student) throw new NotFoundException('Aluno não encontrado');
+
+    const now = new Date();
+    const noteContent = reason
+      ? `[Revogação de Acesso] Motivo: ${reason}`
+      : `[Revogação de Acesso] Acesso revogado pelo administrador`;
+
+    // Cancel active subscriptions
+    await this.subscriptionModel.updateMany(
+      { userId: new Types.ObjectId(studentId), status: 'active' },
+      { status: 'cancelled', cancelledAt: now },
+    );
+
+    const updatedStudent = await this.userModel.findByIdAndUpdate(
+      studentId,
+      {
+        plan: 'free',
+        accountStatus: 'inactive',
+        subscriptionEndDate: null,
+        updatedAt: now,
+        $push: {
+          adminNotes: {
+            _id: new Types.ObjectId(),
+            authorId: new Types.ObjectId(adminId),
+            content: noteContent,
+            createdAt: now,
+          },
+        },
+      },
+      { new: true },
+    ).select('-password');
+
+    return updatedStudent;
+  }
+
   async deleteStudent(studentId: string) {
     const student = await this.userModel.findById(studentId);
     if (!student) throw new NotFoundException('Aluno não encontrado');
