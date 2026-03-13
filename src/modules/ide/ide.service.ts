@@ -8,7 +8,6 @@ import { InjectModel } from '@nestjs/mongoose';
 import { ConfigService } from '@nestjs/config';
 import { Model, Types } from 'mongoose';
 import { IdeContainer, IdeContainerDocument } from './schemas/ide-container.schema';
-import { randomBytes } from 'crypto';
 
 @Injectable()
 export class IdeService {
@@ -183,7 +182,6 @@ export class IdeService {
     const serviceName = `ide-${shortId}`;
     const volumeName = `ide-data-${shortId}`;
     const subdomain = `ide-${shortId}`;
-    const password = randomBytes(16).toString('hex');
 
     const serviceSpec = {
       Name: serviceName,
@@ -201,8 +199,8 @@ export class IdeService {
       TaskTemplate: {
         ContainerSpec: {
           Image: this.ideImage,
+          Args: ['--auth', 'none'],
           Env: [
-            `PASSWORD=${password}`,
             'DEFAULT_WORKSPACE=/home/coder/project',
           ],
           Mounts: [
@@ -247,7 +245,7 @@ export class IdeService {
       containerId: '',
       containerName: serviceName,
       url,
-      password,
+      password: '',
       status: 'running',
       lastAccessedAt: new Date(),
     });

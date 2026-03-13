@@ -57,9 +57,10 @@ const subscription_schema_1 = require("../plans/schemas/subscription.schema");
 const plan_schema_1 = require("../plans/schemas/plan.schema");
 const code_evaluation_schema_1 = require("./schemas/code-evaluation.schema");
 const payment_transaction_schema_1 = require("./schemas/payment-transaction.schema");
+const google_calendar_service_1 = require("../google-calendar/google-calendar.service");
 const bcrypt = __importStar(require("bcryptjs"));
 let AdminService = class AdminService {
-    constructor(userModel, trackModel, progressModel, sessionModel, subscriptionModel, planModel, codeEvaluationModel, paymentTransactionModel, connection) {
+    constructor(userModel, trackModel, progressModel, sessionModel, subscriptionModel, planModel, codeEvaluationModel, paymentTransactionModel, connection, googleCalendarService) {
         this.userModel = userModel;
         this.trackModel = trackModel;
         this.progressModel = progressModel;
@@ -69,6 +70,7 @@ let AdminService = class AdminService {
         this.codeEvaluationModel = codeEvaluationModel;
         this.paymentTransactionModel = paymentTransactionModel;
         this.connection = connection;
+        this.googleCalendarService = googleCalendarService;
     }
     async getDashboardStats() {
         const [totalStudents, activeStudents, totalTracks, totalSessions, upcomingSessions, activeSubscriptions, recentStudents,] = await Promise.all([
@@ -245,6 +247,85 @@ let AdminService = class AdminService {
             throw new common_1.NotFoundException('Aluno não encontrado');
         return student;
     }
+    async grantAccess(studentId, adminId, data) {
+        const student = await this.userModel.findById(studentId);
+        if (!student)
+            throw new common_1.NotFoundException('Aluno não encontrado');
+        const now = new Date();
+        let subscriptionEndDate = null;
+        if (data.duration && data.duration > 0) {
+            subscriptionEndDate = new Date(now);
+            subscriptionEndDate.setDate(subscriptionEndDate.getDate() + data.duration);
+        }
+        const updateFields = {
+            plan: data.plan,
+            accountStatus: 'active',
+            status: 'active',
+            updatedAt: now,
+        };
+        if (subscriptionEndDate) {
+            updateFields.subscriptionEndDate = subscriptionEndDate;
+        }
+        else {
+            updateFields.subscriptionEndDate = null;
+        }
+        const noteContent = data.reason
+            ? `[Liberação de Acesso] Plano: ${data.plan}, Duração: ${data.duration ? data.duration + ' dias' : 'ilimitado'}. Motivo: ${data.reason}`
+            : `[Liberação de Acesso] Plano: ${data.plan}, Duração: ${data.duration ? data.duration + ' dias' : 'ilimitado'}`;
+        const updatedStudent = await this.userModel.findByIdAndUpdate(studentId, {
+            ...updateFields,
+            $push: {
+                adminNotes: {
+                    _id: new mongoose_2.Types.ObjectId(),
+                    authorId: new mongoose_2.Types.ObjectId(adminId),
+                    content: noteContent,
+                    createdAt: now,
+                },
+            },
+        }, { new: true }).select('-password');
+        if (data.createSubscription !== false) {
+            const planDoc = await this.planModel.findOne({ slug: data.plan });
+            if (planDoc) {
+                await this.subscriptionModel.updateMany({ userId: new mongoose_2.Types.ObjectId(studentId), status: 'active' }, { status: 'cancelled', cancelledAt: now });
+                await this.subscriptionModel.create({
+                    userId: new mongoose_2.Types.ObjectId(studentId),
+                    planId: planDoc._id,
+                    status: 'active',
+                    startDate: now,
+                    endDate: subscriptionEndDate || undefined,
+                    billingCycle: 'monthly',
+                    amountPaid: 0,
+                    paymentMethod: 'admin_grant',
+                });
+            }
+        }
+        return updatedStudent;
+    }
+    async revokeAccess(studentId, adminId, reason) {
+        const student = await this.userModel.findById(studentId);
+        if (!student)
+            throw new common_1.NotFoundException('Aluno não encontrado');
+        const now = new Date();
+        const noteContent = reason
+            ? `[Revogação de Acesso] Motivo: ${reason}`
+            : `[Revogação de Acesso] Acesso revogado pelo administrador`;
+        await this.subscriptionModel.updateMany({ userId: new mongoose_2.Types.ObjectId(studentId), status: 'active' }, { status: 'cancelled', cancelledAt: now });
+        const updatedStudent = await this.userModel.findByIdAndUpdate(studentId, {
+            plan: 'free',
+            accountStatus: 'inactive',
+            subscriptionEndDate: null,
+            updatedAt: now,
+            $push: {
+                adminNotes: {
+                    _id: new mongoose_2.Types.ObjectId(),
+                    authorId: new mongoose_2.Types.ObjectId(adminId),
+                    content: noteContent,
+                    createdAt: now,
+                },
+            },
+        }, { new: true }).select('-password');
+        return updatedStudent;
+    }
     async deleteStudent(studentId) {
         const student = await this.userModel.findById(studentId);
         if (!student)
@@ -343,14 +424,41 @@ let AdminService = class AdminService {
             .lean();
     }
     async createSession(adminId, data) {
+        const duration = data.durationMinutes || 60;
+        let meetingUrl = data.meetingUrl || '';
+        let calendarEventId = '';
+        if (data.generateMeet && this.googleCalendarService.isConfigured()) {
+            const [student, mentor] = await Promise.all([
+                this.userModel.findById(data.userId).select('name email').lean(),
+                this.userModel.findById(adminId).select('name email').lean(),
+            ]);
+            const attendees = [];
+            if (student?.email)
+                attendees.push({ email: student.email, displayName: student.name });
+            if (mentor?.email)
+                attendees.push({ email: mentor.email, displayName: mentor.name });
+            const result = await this.googleCalendarService.createEvent({
+                summary: data.title,
+                description: data.description || `Sessão de ${data.type || 'mentoring'} - Codespace`,
+                startDateTime: data.scheduledAt,
+                durationMinutes: duration,
+                attendees,
+            });
+            if (result) {
+                meetingUrl = result.meetingUrl;
+                calendarEventId = result.eventId;
+            }
+        }
         return this.sessionModel.create({
             ...data,
             mentorId: new mongoose_2.Types.ObjectId(adminId),
             userId: new mongoose_2.Types.ObjectId(data.userId),
-            durationMinutes: data.durationMinutes || 60,
+            durationMinutes: duration,
             status: 'scheduled',
             type: data.type || 'mentoring',
             scheduledAt: new Date(data.scheduledAt),
+            meetingUrl,
+            calendarEventId,
         });
     }
     async updateSession(sessionId, data) {
@@ -360,12 +468,33 @@ let AdminService = class AdminService {
         const session = await this.sessionModel.findByIdAndUpdate(sessionId, updateData, { new: true }).populate('userId', 'name email avatar plan');
         if (!session)
             throw new common_1.NotFoundException('Sessão não encontrada');
+        if (session.calendarEventId && this.googleCalendarService.isConfigured()) {
+            const calendarUpdate = {};
+            if (data.title)
+                calendarUpdate.summary = data.title;
+            if (data.description !== undefined)
+                calendarUpdate.description = data.description;
+            if (data.scheduledAt) {
+                calendarUpdate.startDateTime = data.scheduledAt;
+                calendarUpdate.durationMinutes = data.durationMinutes || session.durationMinutes;
+            }
+            if (data.status === 'cancelled') {
+                await this.googleCalendarService.deleteEvent(session.calendarEventId);
+            }
+            else if (Object.keys(calendarUpdate).length > 0) {
+                await this.googleCalendarService.updateEvent(session.calendarEventId, calendarUpdate);
+            }
+        }
         return session;
     }
     async deleteSession(sessionId) {
-        const session = await this.sessionModel.findByIdAndDelete(sessionId);
+        const session = await this.sessionModel.findById(sessionId);
         if (!session)
             throw new common_1.NotFoundException('Sessão não encontrada');
+        if (session.calendarEventId && this.googleCalendarService.isConfigured()) {
+            await this.googleCalendarService.deleteEvent(session.calendarEventId);
+        }
+        await this.sessionModel.findByIdAndDelete(sessionId);
         return { message: 'Sessão removida com sucesso' };
     }
     async markSessionNoShow(sessionId) {
@@ -636,6 +765,7 @@ exports.AdminService = AdminService = __decorate([
         mongoose_2.Model,
         mongoose_2.Model,
         mongoose_2.Model,
-        mongoose_2.Connection])
+        mongoose_2.Connection,
+        google_calendar_service_1.GoogleCalendarService])
 ], AdminService);
 //# sourceMappingURL=admin.service.js.map

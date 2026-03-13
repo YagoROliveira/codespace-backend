@@ -95,6 +95,10 @@ __decorate([
     __metadata("design:type", String)
 ], Session.prototype, "notes", void 0);
 __decorate([
+    (0, mongoose_1.Prop)({ default: '' }),
+    __metadata("design:type", String)
+], Session.prototype, "calendarEventId", void 0);
+__decorate([
     (0, mongoose_1.Prop)({ type: [String], default: [] }),
     __metadata("design:type", Array)
 ], Session.prototype, "topics", void 0);

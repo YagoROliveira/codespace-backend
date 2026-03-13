@@ -1,7 +1,9 @@
 import { AdminService } from './admin.service';
+import { GoogleCalendarService } from '../google-calendar/google-calendar.service';
 export declare class AdminController {
     private readonly adminService;
-    constructor(adminService: AdminService);
+    private readonly googleCalendarService;
+    constructor(adminService: AdminService, googleCalendarService: GoogleCalendarService);
     getDashboard(): Promise<any>;
     getSystemUsers(search?: string, role?: string, status?: string): Promise<any>;
     createSystemUser(data: {
@@ -27,10 +29,20 @@ export declare class AdminController {
     updateStudent(id: string, data: Record<string, any>): Promise<any>;
     deleteStudent(id: string): Promise<any>;
     assignMentor(studentId: string, mentorId: string | null): Promise<any>;
+    grantAccess(studentId: string, adminId: string, data: {
+        plan: string;
+        duration: number | null;
+        reason?: string;
+        createSubscription?: boolean;
+    }): Promise<any>;
+    revokeAccess(studentId: string, adminId: string, data: {
+        reason?: string;
+    }): Promise<any>;
     enrollStudentInTrack(studentId: string, trackId: string): Promise<any>;
     unenrollStudentFromTrack(studentId: string, trackId: string): Promise<any>;
     addStudentNote(studentId: string, adminId: string, content: string): Promise<any>;
     deleteStudentNote(studentId: string, noteId: string): Promise<any>;
+    getGoogleCalendarStatus(): Promise<any>;
     getSessions(status?: string, type?: string, studentId?: string, mentorId?: string): Promise<any>;
     getSessionDetail(id: string): Promise<any>;
     getMentors(): Promise<any>;
@@ -44,6 +56,7 @@ export declare class AdminController {
         type?: string;
         meetingUrl?: string;
         topics?: string[];
+        generateMeet?: boolean;
     }): Promise<any>;
     updateSession(id: string, data: Record<string, any>): Promise<any>;
     deleteSession(id: string): Promise<any>;

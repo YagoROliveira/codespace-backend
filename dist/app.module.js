@@ -27,6 +27,9 @@ const projects_module_1 = require("./modules/projects/projects.module");
 const resources_module_1 = require("./modules/resources/resources.module");
 const payments_module_1 = require("./modules/payments/payments.module");
 const notifications_module_1 = require("./modules/notifications/notifications.module");
+const google_calendar_module_1 = require("./modules/google-calendar/google-calendar.module");
+const workspaces_module_1 = require("./modules/workspaces/workspaces.module");
+const ide_module_1 = require("./modules/ide/ide.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -61,6 +64,9 @@ exports.AppModule = AppModule = __decorate([
             resources_module_1.ResourcesModule,
             payments_module_1.PaymentsModule,
             notifications_module_1.NotificationsModule,
+            google_calendar_module_1.GoogleCalendarModule,
+            workspaces_module_1.WorkspacesModule,
+            ide_module_1.IdeModule,
         ],
     })
 ], AppModule);

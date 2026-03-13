@@ -15,13 +15,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AdminController = void 0;
 const common_1 = require("@nestjs/common");
 const admin_service_1 = require("./admin.service");
+const google_calendar_service_1 = require("../google-calendar/google-calendar.service");
 const jwt_auth_guard_1 = require("../../common/guards/jwt-auth.guard");
 const roles_guard_1 = require("../../common/guards/roles.guard");
 const roles_decorator_1 = require("../../common/decorators/roles.decorator");
 const current_user_decorator_1 = require("../../common/decorators/current-user.decorator");
 let AdminController = class AdminController {
-    constructor(adminService) {
+    constructor(adminService, googleCalendarService) {
         this.adminService = adminService;
+        this.googleCalendarService = googleCalendarService;
     }
     async getDashboard() {
         return this.adminService.getDashboardStats();
@@ -56,6 +58,12 @@ let AdminController = class AdminController {
     async assignMentor(studentId, mentorId) {
         return this.adminService.assignMentor(studentId, mentorId);
     }
+    async grantAccess(studentId, adminId, data) {
+        return this.adminService.grantAccess(studentId, adminId, data);
+    }
+    async revokeAccess(studentId, adminId, data) {
+        return this.adminService.revokeAccess(studentId, adminId, data.reason);
+    }
     async enrollStudentInTrack(studentId, trackId) {
         return this.adminService.enrollStudentInTrack(studentId, trackId);
     }
@@ -67,6 +75,9 @@ let AdminController = class AdminController {
     }
     async deleteStudentNote(studentId, noteId) {
         return this.adminService.deleteStudentNote(studentId, noteId);
+    }
+    async getGoogleCalendarStatus() {
+        return { configured: this.googleCalendarService.isConfigured() };
     }
     async getSessions(status, type, studentId, mentorId) {
         return this.adminService.getAllSessions({ status, type, studentId, mentorId });
@@ -235,6 +246,24 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "assignMentor", null);
 __decorate([
+    (0, common_1.Post)('students/:id/grant-access'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, current_user_decorator_1.CurrentUser)('_id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Object]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "grantAccess", null);
+__decorate([
+    (0, common_1.Post)('students/:id/revoke-access'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, current_user_decorator_1.CurrentUser)('_id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Object]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "revokeAccess", null);
+__decorate([
     (0, common_1.Post)('students/:id/tracks'),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)('trackId')),
@@ -267,6 +296,12 @@ __decorate([
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "deleteStudentNote", null);
+__decorate([
+    (0, common_1.Get)('sessions/google-status'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "getGoogleCalendarStatus", null);
 __decorate([
     (0, common_1.Get)('sessions'),
     __param(0, (0, common_1.Query)('status')),
@@ -474,6 +509,7 @@ exports.AdminController = AdminController = __decorate([
     (0, common_1.Controller)('admin'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     (0, roles_decorator_1.Roles)('admin'),
-    __metadata("design:paramtypes", [admin_service_1.AdminService])
+    __metadata("design:paramtypes", [admin_service_1.AdminService,
+        google_calendar_service_1.GoogleCalendarService])
 ], AdminController);
 //# sourceMappingURL=admin.controller.js.map

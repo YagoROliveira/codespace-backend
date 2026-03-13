@@ -22,6 +22,7 @@ export declare class Session {
     meetingUrl: string;
     recordingUrl: string;
     notes: string;
+    calendarEventId: string;
     topics: string[];
     type: string;
     studentNoShow: boolean;

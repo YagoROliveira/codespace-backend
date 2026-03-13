@@ -7,6 +7,7 @@ import { Subscription, SubscriptionDocument } from '../plans/schemas/subscriptio
 import { PlanDocument } from '../plans/schemas/plan.schema';
 import { CodeEvaluationDocument } from './schemas/code-evaluation.schema';
 import { PaymentTransactionDocument } from './schemas/payment-transaction.schema';
+import { GoogleCalendarService } from '../google-calendar/google-calendar.service';
 export declare class AdminService {
     private userModel;
     private trackModel;
@@ -17,7 +18,8 @@ export declare class AdminService {
     private codeEvaluationModel;
     private paymentTransactionModel;
     private connection;
-    constructor(userModel: Model<UserDocument>, trackModel: Model<TrackDocument>, progressModel: Model<UserTrackProgressDocument>, sessionModel: Model<SessionDocument>, subscriptionModel: Model<SubscriptionDocument>, planModel: Model<PlanDocument>, codeEvaluationModel: Model<CodeEvaluationDocument>, paymentTransactionModel: Model<PaymentTransactionDocument>, connection: Connection);
+    private googleCalendarService;
+    constructor(userModel: Model<UserDocument>, trackModel: Model<TrackDocument>, progressModel: Model<UserTrackProgressDocument>, sessionModel: Model<SessionDocument>, subscriptionModel: Model<SubscriptionDocument>, planModel: Model<PlanDocument>, codeEvaluationModel: Model<CodeEvaluationDocument>, paymentTransactionModel: Model<PaymentTransactionDocument>, connection: Connection, googleCalendarService: GoogleCalendarService);
     getDashboardStats(): Promise<{
         totalStudents: number;
         activeStudents: number;
@@ -172,6 +174,21 @@ export declare class AdminService {
     }> & {
         __v: number;
     }>;
+    grantAccess(studentId: string, adminId: string, data: {
+        plan: string;
+        duration: number | null;
+        reason?: string;
+        createSubscription?: boolean;
+    }): Promise<import("mongoose").Document<unknown, {}, UserDocument, {}, {}> & User & import("mongoose").Document<Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
+        _id: Types.ObjectId;
+    }> & {
+        __v: number;
+    }>;
+    revokeAccess(studentId: string, adminId: string, reason?: string): Promise<import("mongoose").Document<unknown, {}, UserDocument, {}, {}> & User & import("mongoose").Document<Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
+        _id: Types.ObjectId;
+    }> & {
+        __v: number;
+    }>;
     deleteStudent(studentId: string): Promise<{
         message: string;
     }>;
@@ -200,6 +217,7 @@ export declare class AdminService {
         type?: string;
         meetingUrl?: string;
         topics?: string[];
+        generateMeet?: boolean;
     }): Promise<import("mongoose").Document<unknown, {}, SessionDocument, {}, {}> & SessionModel & import("mongoose").Document<Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
         _id: Types.ObjectId;
     }> & {
