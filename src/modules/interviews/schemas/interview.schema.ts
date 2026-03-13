@@ -41,6 +41,8 @@ export class InterviewQuestion {
 
 export const InterviewQuestionSchema = SchemaFactory.createForClass(InterviewQuestion);
 
+InterviewQuestionSchema.index({ isActive: 1, type: 1, level: 1 });
+
 // ─── Interview Session ───
 export type InterviewSessionDocument = InterviewSession & Document;
 
@@ -100,4 +102,4 @@ export class InterviewSession {
 }
 
 export const InterviewSessionSchema = SchemaFactory.createForClass(InterviewSession);
-InterviewSessionSchema.index({ userId: 1 });
+InterviewSessionSchema.index({ userId: 1, status: 1 });

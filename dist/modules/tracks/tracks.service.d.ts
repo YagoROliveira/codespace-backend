@@ -7,8 +7,8 @@ export declare class TracksService {
     private progressModel;
     private readonly certificatesService;
     constructor(trackModel: Model<TrackDocument>, progressModel: Model<UserTrackProgressDocument>, certificatesService: CertificatesService);
-    findAll(): Promise<TrackDocument[]>;
-    findById(id: string): Promise<TrackDocument>;
+    findAll(): Promise<any[]>;
+    findById(id: string): Promise<any>;
     getTrackDetail(trackId: string, userId?: string): Promise<any>;
     getUserTracks(userId: string): Promise<any[]>;
     startTrack(userId: string, trackId: string): Promise<UserTrackProgressDocument>;

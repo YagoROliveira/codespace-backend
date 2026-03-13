@@ -65,6 +65,11 @@ export class Job {
 
 export const JobSchema = SchemaFactory.createForClass(Job);
 
+JobSchema.index({ isActive: 1, isFeatured: -1, createdAt: -1 });
+JobSchema.index({ isActive: 1, type: 1 });
+JobSchema.index({ isActive: 1, level: 1 });
+JobSchema.index({ expiresAt: 1 });
+
 // ─── Job Applications ───
 export type JobApplicationDocument = JobApplication & Document;
 

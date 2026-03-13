@@ -9,10 +9,10 @@ export declare class PlansService {
     private readonly usersService;
     private readonly notificationsService;
     constructor(planModel: Model<PlanDocument>, subscriptionModel: Model<SubscriptionDocument>, usersService: UsersService, notificationsService: NotificationsService);
-    getPlans(): Promise<PlanDocument[]>;
-    getPlanBySlug(slug: string): Promise<PlanDocument>;
+    getPlans(): Promise<any[]>;
+    getPlanBySlug(slug: string): Promise<any>;
     getUserSubscription(userId: string): Promise<any>;
-    getInvoices(userId: string): Promise<SubscriptionDocument[]>;
+    getInvoices(userId: string): Promise<any[]>;
     subscribe(userId: string, planSlug: string, billingCycle?: 'monthly' | 'yearly'): Promise<SubscriptionDocument>;
     cancelSubscription(userId: string): Promise<void>;
 }

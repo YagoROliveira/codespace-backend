@@ -72,6 +72,10 @@ export class Challenge {
 
 export const ChallengeSchema = SchemaFactory.createForClass(Challenge);
 
+ChallengeSchema.index({ isActive: 1 });
+ChallengeSchema.index({ isWeekly: 1, weekStart: 1, weekEnd: 1 });
+ChallengeSchema.index({ difficulty: 1 });
+
 // ─── Submissions ───
 export type ChallengeSubmissionDocument = ChallengeSubmission & Document;
 
@@ -113,3 +117,5 @@ export class ChallengeSubmission {
 
 export const ChallengeSubmissionSchema = SchemaFactory.createForClass(ChallengeSubmission);
 ChallengeSubmissionSchema.index({ userId: 1, challengeId: 1 });
+ChallengeSubmissionSchema.index({ challengeId: 1, status: 1 });
+ChallengeSubmissionSchema.index({ status: 1, submittedAt: -1 });

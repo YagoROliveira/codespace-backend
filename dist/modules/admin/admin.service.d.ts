@@ -28,7 +28,7 @@ export declare class AdminService {
         upcomingSessions: number;
         sessionsThisWeek: number;
         activeSubscriptions: number;
-        monthlyRevenue: number;
+        monthlyRevenue: any;
         planDistribution: any[];
         recentStudents: (import("mongoose").FlattenMaps<UserDocument> & Required<{
             _id: Types.ObjectId;

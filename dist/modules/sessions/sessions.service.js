@@ -26,7 +26,7 @@ let SessionsService = class SessionsService {
             .find({ userId: new mongoose_2.Types.ObjectId(userId) })
             .sort({ scheduledAt: -1 })
             .populate('mentorId', 'name avatar')
-            .exec();
+            .lean().exec();
     }
     async findUpcoming(userId) {
         return this.sessionModel
@@ -37,7 +37,7 @@ let SessionsService = class SessionsService {
         })
             .sort({ scheduledAt: 1 })
             .populate('mentorId', 'name avatar')
-            .exec();
+            .lean().exec();
     }
     async findPast(userId) {
         return this.sessionModel
@@ -50,13 +50,13 @@ let SessionsService = class SessionsService {
         })
             .sort({ scheduledAt: -1 })
             .populate('mentorId', 'name avatar')
-            .exec();
+            .lean().exec();
     }
     async findById(id) {
         const session = await this.sessionModel
             .findById(id)
             .populate('mentorId', 'name avatar')
-            .exec();
+            .lean().exec();
         if (!session)
             throw new common_1.NotFoundException('Sessão não encontrada');
         return session;
@@ -93,7 +93,7 @@ let SessionsService = class SessionsService {
         })
             .sort({ scheduledAt: 1 })
             .populate('mentorId', 'name avatar')
-            .exec();
+            .lean().exec();
     }
 };
 exports.SessionsService = SessionsService;

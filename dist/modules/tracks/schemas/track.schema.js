@@ -137,4 +137,5 @@ exports.Track = Track = __decorate([
     (0, mongoose_1.Schema)({ timestamps: true })
 ], Track);
 exports.TrackSchema = mongoose_1.SchemaFactory.createForClass(Track);
+exports.TrackSchema.index({ isPublished: 1, order: 1 });
 //# sourceMappingURL=track.schema.js.map

@@ -23,10 +23,10 @@ let CertificatesService = class CertificatesService {
         this.certModel = certModel;
     }
     async findByUser(userId) {
-        return this.certModel.find({ userId: new mongoose_2.Types.ObjectId(userId), isValid: true }).sort({ issuedAt: -1 });
+        return this.certModel.find({ userId: new mongoose_2.Types.ObjectId(userId), isValid: true }).sort({ issuedAt: -1 }).lean();
     }
     async findByCode(code) {
-        const cert = await this.certModel.findOne({ code });
+        const cert = await this.certModel.findOne({ code }).lean();
         if (!cert)
             throw new common_1.NotFoundException('Certificado não encontrado');
         return cert;
@@ -35,7 +35,7 @@ let CertificatesService = class CertificatesService {
         const existing = await this.certModel.findOne({
             userId: new mongoose_2.Types.ObjectId(data.userId),
             trackId: new mongoose_2.Types.ObjectId(data.trackId),
-        });
+        }).lean();
         if (existing)
             return existing;
         const code = `CS-${(0, crypto_1.randomUUID)().slice(0, 8).toUpperCase()}`;
@@ -57,10 +57,23 @@ let CertificatesService = class CertificatesService {
         });
     }
     async getStats(userId) {
-        const certs = await this.certModel.find({ userId: new mongoose_2.Types.ObjectId(userId), isValid: true });
+        const [statsAgg, certs] = await Promise.all([
+            this.certModel.aggregate([
+                { $match: { userId: new mongoose_2.Types.ObjectId(userId), isValid: true } },
+                {
+                    $group: {
+                        _id: null,
+                        total: { $sum: 1 },
+                        totalHours: { $sum: '$totalHours' },
+                    },
+                },
+            ]),
+            this.certModel.find({ userId: new mongoose_2.Types.ObjectId(userId), isValid: true }).lean(),
+        ]);
+        const s = statsAgg[0] || { total: 0, totalHours: 0 };
         return {
-            total: certs.length,
-            totalHours: certs.reduce((sum, c) => sum + c.totalHours, 0),
+            total: s.total,
+            totalHours: s.totalHours,
             certificates: certs,
         };
     }

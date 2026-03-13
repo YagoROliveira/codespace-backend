@@ -1,10 +1,10 @@
 import { Model, Types } from 'mongoose';
-import { Certificate, CertificateDocument } from './schemas/certificate.schema';
+import { CertificateDocument } from './schemas/certificate.schema';
 export declare class CertificatesService {
     private certModel;
     constructor(certModel: Model<CertificateDocument>);
-    findByUser(userId: string): Promise<CertificateDocument[]>;
-    findByCode(code: string): Promise<CertificateDocument>;
+    findByUser(userId: string): Promise<any[]>;
+    findByCode(code: string): Promise<any>;
     issueCertificate(data: {
         userId: string;
         trackId: string;
@@ -14,11 +14,11 @@ export declare class CertificatesService {
         totalHours: number;
         totalLessons: number;
         difficulty: string;
-    }): Promise<CertificateDocument>;
+    }): Promise<any>;
     getStats(userId: string): Promise<{
-        total: number;
-        totalHours: number;
-        certificates: (import("mongoose").Document<unknown, {}, CertificateDocument, {}, {}> & Certificate & import("mongoose").Document<Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
+        total: any;
+        totalHours: any;
+        certificates: (import("mongoose").FlattenMaps<CertificateDocument> & Required<{
             _id: Types.ObjectId;
         }> & {
             __v: number;

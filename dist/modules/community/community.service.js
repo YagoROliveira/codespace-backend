@@ -24,7 +24,7 @@ let CommunityService = class CommunityService {
         this.messageModel = messageModel;
     }
     async getChannels() {
-        return this.channelModel.find({ isActive: true }).sort({ order: 1 }).exec();
+        return this.channelModel.find({ isActive: true }).sort({ order: 1 }).lean().exec();
     }
     async createChannel(dto) {
         const channel = new this.channelModel(dto);
@@ -42,7 +42,7 @@ let CommunityService = class CommunityService {
                 .skip(skip)
                 .limit(limit)
                 .populate('userId', 'name avatar role plan')
-                .exec(),
+                .lean().exec(),
             this.messageModel.countDocuments({
                 channelId: new mongoose_2.Types.ObjectId(channelId),
                 parentMessageId: null,
@@ -63,7 +63,7 @@ let CommunityService = class CommunityService {
         })
             .populate('userId', 'name avatar role')
             .sort({ createdAt: -1 })
-            .exec();
+            .lean().exec();
     }
     async createMessage(userId, dto) {
         const message = new this.messageModel({
@@ -110,7 +110,7 @@ let CommunityService = class CommunityService {
             .find({ parentMessageId: new mongoose_2.Types.ObjectId(messageId) })
             .populate('userId', 'name avatar role plan')
             .sort({ createdAt: 1 })
-            .exec();
+            .lean().exec();
     }
 };
 exports.CommunityService = CommunityService;

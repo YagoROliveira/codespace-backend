@@ -28,10 +28,10 @@ let PlansService = class PlansService {
         this.notificationsService = notificationsService;
     }
     async getPlans() {
-        return this.planModel.find({ isActive: true }).sort({ order: 1 }).exec();
+        return this.planModel.find({ isActive: true }).sort({ order: 1 }).lean().exec();
     }
     async getPlanBySlug(slug) {
-        const plan = await this.planModel.findOne({ slug }).exec();
+        const plan = await this.planModel.findOne({ slug }).lean().exec();
         if (!plan)
             throw new common_1.NotFoundException('Plano não encontrado');
         return plan;
@@ -44,7 +44,7 @@ let PlansService = class PlansService {
         })
             .populate('planId')
             .sort({ createdAt: -1 })
-            .exec();
+            .lean().exec();
         return subscription;
     }
     async getInvoices(userId) {
@@ -52,7 +52,7 @@ let PlansService = class PlansService {
             .find({ userId: new mongoose_2.Types.ObjectId(userId) })
             .populate('planId', 'name slug')
             .sort({ startDate: -1 })
-            .exec();
+            .lean().exec();
     }
     async subscribe(userId, planSlug, billingCycle = 'monthly') {
         const plan = await this.getPlanBySlug(planSlug);

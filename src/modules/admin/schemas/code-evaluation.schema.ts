@@ -69,3 +69,5 @@ export const CodeEvaluationSchema = SchemaFactory.createForClass(CodeEvaluation)
 
 CodeEvaluationSchema.index({ studentId: 1, createdAt: -1 });
 CodeEvaluationSchema.index({ reviewerId: 1 });
+CodeEvaluationSchema.index({ status: 1 });
+CodeEvaluationSchema.index({ trackId: 1 });

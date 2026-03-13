@@ -172,7 +172,7 @@ export class IdeService {
   }
 
   async listAll(): Promise<IdeContainer[]> {
-    return this.ideContainerModel.find().sort({ createdAt: -1 }).exec();
+    return this.ideContainerModel.find().sort({ createdAt: -1 }).lean().exec();
   }
 
   // ───── Swarm service lifecycle via Portainer Docker API ─────

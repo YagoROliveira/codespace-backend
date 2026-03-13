@@ -10,15 +10,15 @@ export class SessionsService {
     @InjectModel(Session.name) private sessionModel: Model<SessionDocument>,
   ) { }
 
-  async findByUser(userId: string): Promise<SessionDocument[]> {
+  async findByUser(userId: string): Promise<any[]> {
     return this.sessionModel
       .find({ userId: new Types.ObjectId(userId) })
       .sort({ scheduledAt: -1 })
       .populate('mentorId', 'name avatar')
-      .exec();
+      .lean().exec();
   }
 
-  async findUpcoming(userId: string): Promise<SessionDocument[]> {
+  async findUpcoming(userId: string): Promise<any[]> {
     return this.sessionModel
       .find({
         userId: new Types.ObjectId(userId),
@@ -27,10 +27,10 @@ export class SessionsService {
       })
       .sort({ scheduledAt: 1 })
       .populate('mentorId', 'name avatar')
-      .exec();
+      .lean().exec();
   }
 
-  async findPast(userId: string): Promise<SessionDocument[]> {
+  async findPast(userId: string): Promise<any[]> {
     return this.sessionModel
       .find({
         userId: new Types.ObjectId(userId),
@@ -41,14 +41,14 @@ export class SessionsService {
       })
       .sort({ scheduledAt: -1 })
       .populate('mentorId', 'name avatar')
-      .exec();
+      .lean().exec();
   }
 
-  async findById(id: string): Promise<SessionDocument> {
+  async findById(id: string): Promise<any> {
     const session = await this.sessionModel
       .findById(id)
       .populate('mentorId', 'name avatar')
-      .exec();
+      .lean().exec();
     if (!session) throw new NotFoundException('Sessão não encontrada');
     return session;
   }
@@ -73,7 +73,7 @@ export class SessionsService {
     return this.update(id, { status: 'cancelled' });
   }
 
-  async getWeekSessions(userId: string): Promise<SessionDocument[]> {
+  async getWeekSessions(userId: string): Promise<any[]> {
     const now = new Date();
     const startOfWeek = new Date(now);
     startOfWeek.setDate(now.getDate() - now.getDay());
@@ -89,6 +89,6 @@ export class SessionsService {
       })
       .sort({ scheduledAt: 1 })
       .populate('mentorId', 'name avatar')
-      .exec();
+      .lean().exec();
   }
 }

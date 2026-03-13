@@ -90,3 +90,10 @@ export class User {
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
+
+UserSchema.index({ role: 1 });
+UserSchema.index({ status: 1 });
+UserSchema.index({ accountStatus: 1 });
+UserSchema.index({ mentorId: 1 });
+UserSchema.index({ plan: 1 });
+UserSchema.index({ stripeCustomerId: 1 });

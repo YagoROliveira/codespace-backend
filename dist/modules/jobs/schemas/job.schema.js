@@ -95,6 +95,10 @@ exports.Job = Job = __decorate([
     (0, mongoose_1.Schema)({ timestamps: true })
 ], Job);
 exports.JobSchema = mongoose_1.SchemaFactory.createForClass(Job);
+exports.JobSchema.index({ isActive: 1, isFeatured: -1, createdAt: -1 });
+exports.JobSchema.index({ isActive: 1, type: 1 });
+exports.JobSchema.index({ isActive: 1, level: 1 });
+exports.JobSchema.index({ expiresAt: 1 });
 let JobApplication = class JobApplication {
 };
 exports.JobApplication = JobApplication;

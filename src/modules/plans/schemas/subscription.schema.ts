@@ -50,3 +50,6 @@ export const SubscriptionSchema = SchemaFactory.createForClass(Subscription);
 
 SubscriptionSchema.index({ userId: 1, status: 1 });
 SubscriptionSchema.index({ stripePaymentIntentId: 1 });
+SubscriptionSchema.index({ status: 1 });
+SubscriptionSchema.index({ endDate: 1 });
+SubscriptionSchema.index({ planId: 1 });

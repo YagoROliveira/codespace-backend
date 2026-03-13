@@ -86,8 +86,11 @@ let AdminService = class AdminService {
                 .select('name email plan status createdAt role')
                 .lean(),
         ]);
-        const subscriptions = await this.subscriptionModel.find({ status: 'active' }).lean();
-        const monthlyRevenue = subscriptions.reduce((sum, s) => sum + (s.amountPaid || 0), 0);
+        const revenueAgg = await this.subscriptionModel.aggregate([
+            { $match: { status: 'active' } },
+            { $group: { _id: null, total: { $sum: '$amountPaid' } } },
+        ]);
+        const monthlyRevenue = revenueAgg[0]?.total || 0;
         const startOfWeek = new Date();
         startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
         startOfWeek.setHours(0, 0, 0, 0);
@@ -188,20 +191,34 @@ let AdminService = class AdminService {
             .select('-password')
             .sort({ createdAt: -1 })
             .lean();
-        const enriched = await Promise.all(students.map(async (student) => {
-            const progress = await this.progressModel.find({ userId: student._id }).lean();
-            const subscription = await this.subscriptionModel.findOne({
-                userId: student._id,
-                status: 'active',
-            }).populate('planId').lean();
+        if (students.length === 0)
+            return [];
+        const studentIds = students.map(s => s._id);
+        const [progressDocs, subscriptionDocs] = await Promise.all([
+            this.progressModel.find({ userId: { $in: studentIds } }).lean(),
+            this.subscriptionModel.find({ userId: { $in: studentIds }, status: 'active' })
+                .populate('planId').lean(),
+        ]);
+        const progressByUser = new Map();
+        for (const p of progressDocs) {
+            const key = p.userId.toString();
+            if (!progressByUser.has(key))
+                progressByUser.set(key, []);
+            progressByUser.get(key).push(p);
+        }
+        const subByUser = new Map();
+        for (const s of subscriptionDocs) {
+            subByUser.set(s.userId.toString(), s);
+        }
+        return students.map(student => {
+            const progress = progressByUser.get(student._id.toString()) || [];
             return {
                 ...student,
                 tracksEnrolled: progress.length,
                 tracksCompleted: progress.filter(p => p.status === 'completed').length,
-                subscription: subscription || null,
+                subscription: subByUser.get(student._id.toString()) || null,
             };
-        }));
-        return enriched;
+        });
     }
     async getStudentDetail(studentId) {
         const student = await this.userModel.findById(studentId)
@@ -568,12 +585,23 @@ let AdminService = class AdminService {
     }
     async getAllTracks() {
         const tracks = await this.trackModel.find().sort({ order: 1 }).lean();
-        const enriched = await Promise.all(tracks.map(async (track) => {
-            const enrollments = await this.progressModel.countDocuments({ trackId: track._id });
-            const completions = await this.progressModel.countDocuments({ trackId: track._id, status: 'completed' });
-            return { ...track, enrollments, completions };
-        }));
-        return enriched;
+        if (tracks.length === 0)
+            return [];
+        const stats = await this.progressModel.aggregate([
+            { $match: { trackId: { $in: tracks.map(t => t._id) } } },
+            {
+                $group: {
+                    _id: '$trackId',
+                    enrollments: { $sum: 1 },
+                    completions: { $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] } },
+                },
+            },
+        ]);
+        const statsMap = new Map(stats.map(s => [s._id.toString(), s]));
+        return tracks.map(track => {
+            const s = statsMap.get(track._id.toString());
+            return { ...track, enrollments: s?.enrollments || 0, completions: s?.completions || 0 };
+        });
     }
     async createTrack(data) {
         const lessons = (data.lessons || []).map((lesson, i) => ({
@@ -731,18 +759,32 @@ let AdminService = class AdminService {
         });
     }
     async getStudentPaymentSummary(studentId) {
-        const payments = await this.paymentTransactionModel.find({
-            userId: new mongoose_2.Types.ObjectId(studentId),
-        }).lean();
-        const totalPaid = payments
-            .filter(p => p.status === 'succeeded')
-            .reduce((sum, p) => sum + p.amount, 0);
-        const totalRefunded = payments
-            .filter(p => p.status === 'refunded')
-            .reduce((sum, p) => sum + (p.refundedAmount || p.amount), 0);
-        const failedAttempts = payments.filter(p => p.status === 'failed').length;
-        const totalTransactions = payments.length;
-        return { totalPaid, totalRefunded, failedAttempts, totalTransactions, payments };
+        const [summaryAgg, payments] = await Promise.all([
+            this.paymentTransactionModel.aggregate([
+                { $match: { userId: new mongoose_2.Types.ObjectId(studentId) } },
+                {
+                    $group: {
+                        _id: null,
+                        totalPaid: { $sum: { $cond: [{ $eq: ['$status', 'succeeded'] }, '$amount', 0] } },
+                        totalRefunded: {
+                            $sum: {
+                                $cond: [
+                                    { $eq: ['$status', 'refunded'] },
+                                    { $ifNull: ['$refundedAmount', '$amount'] },
+                                    0,
+                                ],
+                            },
+                        },
+                        failedAttempts: { $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 1, 0] } },
+                        totalTransactions: { $sum: 1 },
+                    },
+                },
+            ]),
+            this.paymentTransactionModel.find({ userId: new mongoose_2.Types.ObjectId(studentId) })
+                .sort({ createdAt: -1 }).lean(),
+        ]);
+        const summary = summaryAgg[0] || { totalPaid: 0, totalRefunded: 0, failedAttempts: 0, totalTransactions: 0 };
+        return { ...summary, _id: undefined, payments };
     }
 };
 exports.AdminService = AdminService;

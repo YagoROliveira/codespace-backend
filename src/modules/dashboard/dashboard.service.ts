@@ -19,11 +19,11 @@ export class DashboardService {
     const userObjectId = new Types.ObjectId(userId);
 
     const [user, activeTracks, upcomingSessions, totalSessions] = await Promise.all([
-      this.userModel.findById(userId).exec(),
+      this.userModel.findById(userId).lean().exec(),
       this.progressModel
         .find({ userId: userObjectId, status: 'in_progress' })
         .populate('trackId')
-        .exec(),
+        .lean().exec(),
       this.sessionModel
         .find({
           userId: userObjectId,
@@ -33,7 +33,7 @@ export class DashboardService {
         .sort({ scheduledAt: 1 })
         .limit(3)
         .populate('mentorId', 'name avatar')
-        .exec(),
+        .lean().exec(),
       this.sessionModel.countDocuments({
         userId: userObjectId,
         status: 'completed',

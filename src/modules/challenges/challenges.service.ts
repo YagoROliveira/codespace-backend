@@ -10,22 +10,22 @@ export class ChallengesService {
     @InjectModel(ChallengeSubmission.name) private submissionModel: Model<ChallengeSubmissionDocument>,
   ) { }
 
-  async findAll(): Promise<ChallengeDocument[]> {
-    return this.challengeModel.find({ isActive: true }).sort({ createdAt: -1 });
+  async findAll(): Promise<any[]> {
+    return this.challengeModel.find({ isActive: true }).sort({ createdAt: -1 }).lean();
   }
 
-  async findWeekly(): Promise<ChallengeDocument[]> {
+  async findWeekly(): Promise<any[]> {
     const now = new Date();
     return this.challengeModel.find({
       isActive: true,
       isWeekly: true,
       weekStart: { $lte: now },
       weekEnd: { $gte: now },
-    }).sort({ points: -1 });
+    }).sort({ points: -1 }).lean();
   }
 
-  async findById(id: string): Promise<ChallengeDocument> {
-    const challenge = await this.challengeModel.findById(id);
+  async findById(id: string): Promise<any> {
+    const challenge = await this.challengeModel.findById(id).lean();
     if (!challenge) throw new NotFoundException('Desafio não encontrado');
     return challenge;
   }
@@ -64,7 +64,7 @@ export class ChallengesService {
   async getUserSubmissions(userId: string, challengeId?: string) {
     const filter: any = { userId: new Types.ObjectId(userId) };
     if (challengeId) filter.challengeId = new Types.ObjectId(challengeId);
-    return this.submissionModel.find(filter).sort({ submittedAt: -1 }).limit(50);
+    return this.submissionModel.find(filter).sort({ submittedAt: -1 }).limit(50).lean();
   }
 
   async getLeaderboard(challengeId?: string) {
@@ -83,13 +83,33 @@ export class ChallengesService {
   }
 
   async getUserStats(userId: string) {
-    const submissions = await this.submissionModel.find({ userId: new Types.ObjectId(userId) });
-    const passed = submissions.filter(s => s.status === 'passed');
-    const uniqueSolved = new Set(passed.map(s => s.challengeId.toString())).size;
+    const [statsAgg, uniqueSolvedAgg] = await Promise.all([
+      this.submissionModel.aggregate([
+        { $match: { userId: new Types.ObjectId(userId) } },
+        {
+          $group: {
+            _id: null,
+            totalSubmissions: { $sum: 1 },
+            totalScore: {
+              $sum: { $cond: [{ $eq: ['$status', 'passed'] }, '$score', 0] },
+            },
+          },
+        },
+      ]),
+      this.submissionModel.aggregate([
+        { $match: { userId: new Types.ObjectId(userId), status: 'passed' } },
+        { $group: { _id: '$challengeId' } },
+        { $count: 'count' },
+      ]),
+    ]);
+
+    const stats = statsAgg[0] || { totalSubmissions: 0, totalScore: 0 };
+    const uniqueSolved = uniqueSolvedAgg[0]?.count || 0;
+
     return {
-      totalSubmissions: submissions.length,
+      totalSubmissions: stats.totalSubmissions,
       totalSolved: uniqueSolved,
-      totalScore: passed.reduce((sum, s) => sum + s.score, 0),
+      totalScore: stats.totalScore,
       streak: Math.min(uniqueSolved, 7),
     };
   }

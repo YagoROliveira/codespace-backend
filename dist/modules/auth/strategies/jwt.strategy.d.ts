@@ -11,6 +11,6 @@ export declare class JwtStrategy extends JwtStrategy_base {
     validate(payload: {
         sub: string;
         email: string;
-    }): Promise<import("../../users/schemas/user.schema").UserDocument>;
+    }): Promise<any>;
 }
 export {};

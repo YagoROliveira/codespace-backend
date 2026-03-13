@@ -95,3 +95,5 @@ export class Track {
 }
 
 export const TrackSchema = SchemaFactory.createForClass(Track);
+
+TrackSchema.index({ isPublished: 1, order: 1 });

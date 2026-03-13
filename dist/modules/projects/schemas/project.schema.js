@@ -79,6 +79,9 @@ exports.Project = Project = __decorate([
     (0, mongoose_1.Schema)({ timestamps: true })
 ], Project);
 exports.ProjectSchema = mongoose_1.SchemaFactory.createForClass(Project);
+exports.ProjectSchema.index({ isActive: 1, isFeatured: -1 });
+exports.ProjectSchema.index({ isActive: 1, difficulty: 1 });
+exports.ProjectSchema.index({ isActive: 1, category: 1 });
 let UserProject = class UserProject {
 };
 exports.UserProject = UserProject;

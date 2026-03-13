@@ -11,12 +11,12 @@ export class UsersService {
     @InjectModel(User.name) private userModel: Model<UserDocument>,
   ) { }
 
-  async findAll(): Promise<UserDocument[]> {
-    return this.userModel.find().exec();
+  async findAll(): Promise<any[]> {
+    return this.userModel.find().lean().exec();
   }
 
-  async findById(id: string): Promise<UserDocument> {
-    const user = await this.userModel.findById(id).exec();
+  async findById(id: string): Promise<any> {
+    const user = await this.userModel.findById(id).lean().exec();
     if (!user) throw new NotFoundException('Usuário não encontrado');
     return user;
   }

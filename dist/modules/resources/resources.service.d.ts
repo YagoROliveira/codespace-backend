@@ -7,7 +7,7 @@ export declare class ResourcesService {
     private bookmarkModel;
     private likeModel;
     constructor(resourceModel: Model<Resource>, bookmarkModel: Model<ResourceBookmark>, likeModel: Model<ResourceLike>);
-    findAll(type?: string, category?: string, tag?: string): Promise<(import("mongoose").Document<unknown, {}, Resource, {}, {}> & Resource & Required<{
+    findAll(type?: string, category?: string, tag?: string): Promise<(import("mongoose").FlattenMaps<Resource> & Required<{
         _id: Types.ObjectId;
     }> & {
         __v: number;
@@ -26,7 +26,7 @@ export declare class ResourcesService {
     bookmark(userId: string, resourceId: string): Promise<{
         bookmarked: boolean;
     }>;
-    getMyBookmarks(userId: string): Promise<(import("mongoose").Document<unknown, {}, Resource, {}, {}> & Resource & Required<{
+    getMyBookmarks(userId: string): Promise<(import("mongoose").FlattenMaps<Resource> & Required<{
         _id: Types.ObjectId;
     }> & {
         __v: number;

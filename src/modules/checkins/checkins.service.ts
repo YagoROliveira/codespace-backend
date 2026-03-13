@@ -18,7 +18,7 @@ export class CheckinsService {
 
   async getToday(userId: string) {
     const date = new Date().toISOString().split('T')[0];
-    return this.checkinModel.findOne({ userId: new Types.ObjectId(userId), date });
+    return this.checkinModel.findOne({ userId: new Types.ObjectId(userId), date }).lean();
   }
 
   async getHistory(userId: string, days: number = 30) {
@@ -27,7 +27,7 @@ export class CheckinsService {
     return this.checkinModel.find({
       userId: new Types.ObjectId(userId),
       createdAt: { $gte: since },
-    }).sort({ date: -1 });
+    }).sort({ date: -1 }).lean();
   }
 
   async getWeeklyReport(userId: string) {
@@ -36,7 +36,7 @@ export class CheckinsService {
     const checkins = await this.checkinModel.find({
       userId: new Types.ObjectId(userId),
       createdAt: { $gte: since },
-    });
+    }).lean();
     return {
       totalDays: checkins.length,
       totalHours: checkins.reduce((s, c) => s + c.hoursStudied, 0),
@@ -47,7 +47,7 @@ export class CheckinsService {
   }
 
   async getStreak(userId: string): Promise<number> {
-    const checkins = await this.checkinModel.find({ userId: new Types.ObjectId(userId) }).sort({ date: -1 }).limit(60);
+    const checkins = await this.checkinModel.find({ userId: new Types.ObjectId(userId) }).sort({ date: -1 }).limit(60).lean();
     let streak = 0;
     const today = new Date();
     for (let i = 0; i < 60; i++) {

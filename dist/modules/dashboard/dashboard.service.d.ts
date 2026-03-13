@@ -1,7 +1,7 @@
 import { Model, Types } from 'mongoose';
 import { UserDocument } from '../users/schemas/user.schema';
 import { UserTrackProgressDocument } from '../tracks/schemas/user-track-progress.schema';
-import { Session, SessionDocument } from '../sessions/schemas/session.schema';
+import { SessionDocument } from '../sessions/schemas/session.schema';
 import { TrackDocument } from '../tracks/schemas/track.schema';
 export declare class DashboardService {
     private userModel;
@@ -29,7 +29,7 @@ export declare class DashboardService {
             completedLessons: number;
             startedAt: Date;
         }[];
-        upcomingSessions: (import("mongoose").Document<unknown, {}, SessionDocument, {}, {}> & Session & import("mongoose").Document<Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
+        upcomingSessions: (import("mongoose").FlattenMaps<SessionDocument> & Required<{
             _id: Types.ObjectId;
         }> & {
             __v: number;

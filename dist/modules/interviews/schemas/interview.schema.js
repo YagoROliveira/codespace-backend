@@ -63,6 +63,7 @@ exports.InterviewQuestion = InterviewQuestion = __decorate([
     (0, mongoose_1.Schema)({ timestamps: true })
 ], InterviewQuestion);
 exports.InterviewQuestionSchema = mongoose_1.SchemaFactory.createForClass(InterviewQuestion);
+exports.InterviewQuestionSchema.index({ isActive: 1, type: 1, level: 1 });
 let InterviewAnswer = class InterviewAnswer {
 };
 exports.InterviewAnswer = InterviewAnswer;
@@ -141,5 +142,5 @@ exports.InterviewSession = InterviewSession = __decorate([
     (0, mongoose_1.Schema)({ timestamps: true })
 ], InterviewSession);
 exports.InterviewSessionSchema = mongoose_1.SchemaFactory.createForClass(InterviewSession);
-exports.InterviewSessionSchema.index({ userId: 1 });
+exports.InterviewSessionSchema.index({ userId: 1, status: 1 });
 //# sourceMappingURL=interview.schema.js.map

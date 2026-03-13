@@ -18,7 +18,7 @@ export class ResourcesService {
     if (type) filter.type = type;
     if (category) filter.category = category;
     if (tag) filter.tags = tag;
-    return this.resourceModel.find(filter).sort({ isFeatured: -1, createdAt: -1 });
+    return this.resourceModel.find(filter).sort({ isFeatured: -1, createdAt: -1 }).lean();
   }
 
   async findById(id: string) {
@@ -84,10 +84,10 @@ export class ResourcesService {
   async getMyBookmarks(userId: string) {
     const bookmarks = await this.bookmarkModel
       .find({ userId: new Types.ObjectId(userId) })
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 }).lean();
 
     const resourceIds = bookmarks.map((b) => b.resourceId);
-    return this.resourceModel.find({ _id: { $in: resourceIds } });
+    return this.resourceModel.find({ _id: { $in: resourceIds } }).lean();
   }
 
   async getCategories() {

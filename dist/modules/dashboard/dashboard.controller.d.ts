@@ -22,7 +22,7 @@ export declare class DashboardController {
             completedLessons: number;
             startedAt: Date;
         }[];
-        upcomingSessions: (import("mongoose").Document<unknown, {}, import("../sessions/schemas/session.schema").SessionDocument, {}, {}> & import("../sessions/schemas/session.schema").Session & import("mongoose").Document<import("mongoose").Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
+        upcomingSessions: (import("mongoose").FlattenMaps<import("../sessions/schemas/session.schema").SessionDocument> & Required<{
             _id: import("mongoose").Types.ObjectId;
         }> & {
             __v: number;

@@ -15,12 +15,12 @@ export class PlansService {
     private readonly notificationsService: NotificationsService,
   ) { }
 
-  async getPlans(): Promise<PlanDocument[]> {
-    return this.planModel.find({ isActive: true }).sort({ order: 1 }).exec();
+  async getPlans(): Promise<any[]> {
+    return this.planModel.find({ isActive: true }).sort({ order: 1 }).lean().exec();
   }
 
-  async getPlanBySlug(slug: string): Promise<PlanDocument> {
-    const plan = await this.planModel.findOne({ slug }).exec();
+  async getPlanBySlug(slug: string): Promise<any> {
+    const plan = await this.planModel.findOne({ slug }).lean().exec();
     if (!plan) throw new NotFoundException('Plano não encontrado');
     return plan;
   }
@@ -33,17 +33,17 @@ export class PlansService {
       })
       .populate('planId')
       .sort({ createdAt: -1 })
-      .exec();
+      .lean().exec();
 
     return subscription;
   }
 
-  async getInvoices(userId: string): Promise<SubscriptionDocument[]> {
+  async getInvoices(userId: string): Promise<any[]> {
     return this.subscriptionModel
       .find({ userId: new Types.ObjectId(userId) })
       .populate('planId', 'name slug')
       .sort({ startDate: -1 })
-      .exec();
+      .lean().exec();
   }
 
   async subscribe(

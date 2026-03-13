@@ -26,16 +26,16 @@ let ProjectsService = class ProjectsService {
         const query = { isActive: true };
         if (difficulty)
             query.difficulty = difficulty;
-        return this.projectModel.find(query).sort({ isFeatured: -1, createdAt: -1 });
+        return this.projectModel.find(query).sort({ isFeatured: -1, createdAt: -1 }).lean();
     }
     async findById(id) {
-        const p = await this.projectModel.findById(id);
+        const p = await this.projectModel.findById(id).lean();
         if (!p)
             throw new common_1.NotFoundException('Projeto não encontrado');
         return p;
     }
     async startProject(userId, projectId) {
-        const existing = await this.userProjectModel.findOne({ userId: new mongoose_2.Types.ObjectId(userId), projectId: new mongoose_2.Types.ObjectId(projectId) });
+        const existing = await this.userProjectModel.findOne({ userId: new mongoose_2.Types.ObjectId(userId), projectId: new mongoose_2.Types.ObjectId(projectId) }).lean();
         if (existing)
             throw new common_1.ConflictException('Você já está participando deste projeto');
         await this.projectModel.findByIdAndUpdate(projectId, { $inc: { participants: 1 } });
@@ -57,20 +57,27 @@ let ProjectsService = class ProjectsService {
         return up.save();
     }
     async getMyProjects(userId) {
-        const ups = await this.userProjectModel.find({ userId: new mongoose_2.Types.ObjectId(userId) }).sort({ startedAt: -1 });
+        const ups = await this.userProjectModel.find({ userId: new mongoose_2.Types.ObjectId(userId) }).sort({ startedAt: -1 }).lean();
         const projectIds = ups.map(u => u.projectId);
-        const projects = await this.projectModel.find({ _id: { $in: projectIds } });
+        const projects = await this.projectModel.find({ _id: { $in: projectIds } }).lean();
         const pMap = new Map(projects.map(p => [p._id.toString(), p]));
-        return ups.map(u => ({ ...u.toObject(), project: pMap.get(u.projectId.toString()) }));
+        return ups.map(u => ({ ...u, project: pMap.get(u.projectId.toString()) }));
     }
     async getUserStats(userId) {
-        const ups = await this.userProjectModel.find({ userId: new mongoose_2.Types.ObjectId(userId) });
-        return {
-            total: ups.length,
-            inProgress: ups.filter(u => u.status === 'in_progress').length,
-            completed: ups.filter(u => u.status === 'completed').length,
-            submitted: ups.filter(u => u.status === 'submitted').length,
-        };
+        const stats = await this.userProjectModel.aggregate([
+            { $match: { userId: new mongoose_2.Types.ObjectId(userId) } },
+            {
+                $group: {
+                    _id: null,
+                    total: { $sum: 1 },
+                    inProgress: { $sum: { $cond: [{ $eq: ['$status', 'in_progress'] }, 1, 0] } },
+                    completed: { $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] } },
+                    submitted: { $sum: { $cond: [{ $eq: ['$status', 'submitted'] }, 1, 0] } },
+                },
+            },
+        ]);
+        const s = stats[0] || { total: 0, inProgress: 0, completed: 0, submitted: 0 };
+        return { total: s.total, inProgress: s.inProgress, completed: s.completed, submitted: s.submitted };
     }
 };
 exports.ProjectsService = ProjectsService;

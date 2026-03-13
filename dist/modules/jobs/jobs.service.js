@@ -30,10 +30,10 @@ let JobsService = class JobsService {
             query.level = filters.level;
         if (filters?.tag)
             query.tags = { $in: [filters.tag] };
-        return this.jobModel.find(query).sort({ isFeatured: -1, createdAt: -1 });
+        return this.jobModel.find(query).sort({ isFeatured: -1, createdAt: -1 }).lean();
     }
     async findById(id) {
-        const job = await this.jobModel.findById(id);
+        const job = await this.jobModel.findById(id).lean();
         if (!job)
             throw new common_1.NotFoundException('Vaga não encontrada');
         return job;
@@ -42,7 +42,7 @@ let JobsService = class JobsService {
         const existing = await this.applicationModel.findOne({
             userId: new mongoose_2.Types.ObjectId(userId),
             jobId: new mongoose_2.Types.ObjectId(jobId),
-        });
+        }).lean();
         if (existing)
             throw new common_1.ConflictException('Você já se candidatou a esta vaga');
         const application = await this.applicationModel.create({
@@ -56,11 +56,11 @@ let JobsService = class JobsService {
         return application;
     }
     async getMyApplications(userId) {
-        const apps = await this.applicationModel.find({ userId: new mongoose_2.Types.ObjectId(userId) }).sort({ appliedAt: -1 });
+        const apps = await this.applicationModel.find({ userId: new mongoose_2.Types.ObjectId(userId) }).sort({ appliedAt: -1 }).lean();
         const jobIds = apps.map(a => a.jobId);
-        const jobs = await this.jobModel.find({ _id: { $in: jobIds } });
+        const jobs = await this.jobModel.find({ _id: { $in: jobIds } }).lean();
         const jobMap = new Map(jobs.map(j => [j._id.toString(), j]));
-        return apps.map(a => ({ ...a.toObject(), job: jobMap.get(a.jobId.toString()) }));
+        return apps.map(a => ({ ...a, job: jobMap.get(a.jobId.toString()) }));
     }
     async getStats() {
         const total = await this.jobModel.countDocuments({ isActive: true });

@@ -33,7 +33,7 @@ let ResourcesService = class ResourcesService {
             filter.category = category;
         if (tag)
             filter.tags = tag;
-        return this.resourceModel.find(filter).sort({ isFeatured: -1, createdAt: -1 });
+        return this.resourceModel.find(filter).sort({ isFeatured: -1, createdAt: -1 }).lean();
     }
     async findById(id) {
         const resource = await this.resourceModel.findByIdAndUpdate(id, { $inc: { views: 1 } }, { new: true });
@@ -94,9 +94,9 @@ let ResourcesService = class ResourcesService {
     async getMyBookmarks(userId) {
         const bookmarks = await this.bookmarkModel
             .find({ userId: new mongoose_2.Types.ObjectId(userId) })
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 }).lean();
         const resourceIds = bookmarks.map((b) => b.resourceId);
-        return this.resourceModel.find({ _id: { $in: resourceIds } });
+        return this.resourceModel.find({ _id: { $in: resourceIds } }).lean();
     }
     async getCategories() {
         return this.resourceModel.distinct('category', { isActive: true });

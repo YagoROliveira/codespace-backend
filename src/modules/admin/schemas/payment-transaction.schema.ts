@@ -62,3 +62,6 @@ export const PaymentTransactionSchema = SchemaFactory.createForClass(PaymentTran
 PaymentTransactionSchema.index({ userId: 1, createdAt: -1 });
 PaymentTransactionSchema.index({ subscriptionId: 1 });
 PaymentTransactionSchema.index({ status: 1 });
+PaymentTransactionSchema.index({ gatewayTransactionId: 1 });
+PaymentTransactionSchema.index({ paidAt: 1 });
+PaymentTransactionSchema.index({ planId: 1 });

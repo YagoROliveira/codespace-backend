@@ -90,4 +90,7 @@ exports.PaymentTransactionSchema = mongoose_1.SchemaFactory.createForClass(Payme
 exports.PaymentTransactionSchema.index({ userId: 1, createdAt: -1 });
 exports.PaymentTransactionSchema.index({ subscriptionId: 1 });
 exports.PaymentTransactionSchema.index({ status: 1 });
+exports.PaymentTransactionSchema.index({ gatewayTransactionId: 1 });
+exports.PaymentTransactionSchema.index({ paidAt: 1 });
+exports.PaymentTransactionSchema.index({ planId: 1 });
 //# sourceMappingURL=payment-transaction.schema.js.map

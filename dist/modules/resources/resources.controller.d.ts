@@ -2,7 +2,7 @@ import { ResourcesService } from './resources.service';
 export declare class ResourcesController {
     private readonly resourcesService;
     constructor(resourcesService: ResourcesService);
-    findAll(type?: string, category?: string, tag?: string): Promise<(import("mongoose").Document<unknown, {}, import("./schemas/resource.schema").Resource, {}, {}> & import("./schemas/resource.schema").Resource & Required<{
+    findAll(type?: string, category?: string, tag?: string): Promise<(import("mongoose").FlattenMaps<import("./schemas/resource.schema").Resource> & Required<{
         _id: import("mongoose").Types.ObjectId;
     }> & {
         __v: number;
@@ -13,7 +13,7 @@ export declare class ResourcesController {
         byType: any;
         totalDownloads: any;
     }>;
-    getMyBookmarks(userId: string): Promise<(import("mongoose").Document<unknown, {}, import("./schemas/resource.schema").Resource, {}, {}> & import("./schemas/resource.schema").Resource & Required<{
+    getMyBookmarks(userId: string): Promise<(import("mongoose").FlattenMaps<import("./schemas/resource.schema").Resource> & Required<{
         _id: import("mongoose").Types.ObjectId;
     }> & {
         __v: number;

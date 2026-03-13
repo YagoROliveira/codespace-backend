@@ -15,12 +15,12 @@ export declare class CheckinsService {
     }> & {
         __v: number;
     }>;
-    getToday(userId: string): Promise<import("mongoose").Document<unknown, {}, CheckinDocument, {}, {}> & Checkin & import("mongoose").Document<Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
+    getToday(userId: string): Promise<import("mongoose").FlattenMaps<CheckinDocument> & Required<{
         _id: Types.ObjectId;
     }> & {
         __v: number;
     }>;
-    getHistory(userId: string, days?: number): Promise<(import("mongoose").Document<unknown, {}, CheckinDocument, {}, {}> & Checkin & import("mongoose").Document<Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
+    getHistory(userId: string, days?: number): Promise<(import("mongoose").FlattenMaps<CheckinDocument> & Required<{
         _id: Types.ObjectId;
     }> & {
         __v: number;

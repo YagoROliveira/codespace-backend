@@ -10,11 +10,11 @@ export class InterviewsService {
     @InjectModel(InterviewSession.name) private sessionModel: Model<InterviewSessionDocument>,
   ) { }
 
-  async getQuestions(type?: string, level?: string): Promise<InterviewQuestionDocument[]> {
+  async getQuestions(type?: string, level?: string): Promise<any[]> {
     const query: any = { isActive: true };
     if (type) query.type = type;
     if (level) query.level = level;
-    return this.questionModel.find(query).sort({ createdAt: -1 });
+    return this.questionModel.find(query).sort({ createdAt: -1 }).lean();
   }
 
   async startSession(userId: string, type: string, level: string, questionCount: number = 5) {
@@ -51,7 +51,7 @@ export class InterviewsService {
     const session = await this.sessionModel.findOne({ _id: sessionId, userId: new Types.ObjectId(userId) });
     if (!session) throw new NotFoundException('Sessão não encontrada');
 
-    const question = await this.questionModel.findById(questionId);
+    const question = await this.questionModel.findById(questionId).lean();
     if (!question) throw new NotFoundException('Pergunta não encontrada');
 
     // Simple scoring heuristic based on answer length and keyword matching
@@ -90,24 +90,37 @@ export class InterviewsService {
   }
 
   async getUserSessions(userId: string) {
-    return this.sessionModel.find({ userId: new Types.ObjectId(userId) }).sort({ startedAt: -1 }).limit(20);
+    return this.sessionModel.find({ userId: new Types.ObjectId(userId) }).sort({ startedAt: -1 }).limit(20).lean();
   }
 
   async getSessionById(userId: string, sessionId: string) {
-    const session = await this.sessionModel.findOne({ _id: sessionId, userId: new Types.ObjectId(userId) });
+    const session = await this.sessionModel.findOne({ _id: sessionId, userId: new Types.ObjectId(userId) }).lean();
     if (!session) throw new NotFoundException('Sessão não encontrada');
     const questionIds = session.answers.map(a => a.questionId);
-    const questions = await this.questionModel.find({ _id: { $in: questionIds } });
+    const questions = await this.questionModel.find({ _id: { $in: questionIds } }).lean();
     return { session, questions };
   }
 
   async getUserStats(userId: string) {
-    const sessions = await this.sessionModel.find({ userId: new Types.ObjectId(userId), status: 'completed' });
+    const stats = await this.sessionModel.aggregate([
+      { $match: { userId: new Types.ObjectId(userId), status: 'completed' } },
+      {
+        $group: {
+          _id: null,
+          totalSessions: { $sum: 1 },
+          avgScore: { $avg: '$totalScore' },
+          bestScore: { $max: '$totalScore' },
+          totalQuestions: { $sum: '$totalQuestions' },
+        },
+      },
+    ]);
+
+    const s = stats[0] || { totalSessions: 0, avgScore: 0, bestScore: 0, totalQuestions: 0 };
     return {
-      totalSessions: sessions.length,
-      avgScore: sessions.length ? Math.round(sessions.reduce((s, ss) => s + ss.totalScore, 0) / sessions.length) : 0,
-      bestScore: sessions.length ? Math.max(...sessions.map(s => s.totalScore)) : 0,
-      totalQuestions: sessions.reduce((s, ss) => s + ss.totalQuestions, 0),
+      totalSessions: s.totalSessions,
+      avgScore: Math.round(s.avgScore || 0),
+      bestScore: s.bestScore,
+      totalQuestions: s.totalQuestions,
     };
   }
 }

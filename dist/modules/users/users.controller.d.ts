@@ -3,7 +3,7 @@ import { UpdateUserDto, UpdatePasswordDto, UpdateNotificationsDto } from './dto/
 export declare class UsersController {
     private readonly usersService;
     constructor(usersService: UsersService);
-    getMe(userId: string): Promise<import("./schemas/user.schema").UserDocument>;
+    getMe(userId: string): Promise<any>;
     updateMe(userId: string, dto: UpdateUserDto): Promise<import("./schemas/user.schema").UserDocument>;
     updatePassword(userId: string, dto: UpdatePasswordDto): Promise<{
         message: string;
@@ -12,5 +12,5 @@ export declare class UsersController {
     deleteAccount(userId: string): Promise<{
         message: string;
     }>;
-    findById(id: string): Promise<import("./schemas/user.schema").UserDocument>;
+    findById(id: string): Promise<any>;
 }

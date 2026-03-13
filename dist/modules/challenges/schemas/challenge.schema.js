@@ -106,6 +106,9 @@ exports.Challenge = Challenge = __decorate([
     (0, mongoose_1.Schema)({ timestamps: true })
 ], Challenge);
 exports.ChallengeSchema = mongoose_1.SchemaFactory.createForClass(Challenge);
+exports.ChallengeSchema.index({ isActive: 1 });
+exports.ChallengeSchema.index({ isWeekly: 1, weekStart: 1, weekEnd: 1 });
+exports.ChallengeSchema.index({ difficulty: 1 });
 let ChallengeSubmission = class ChallengeSubmission {
 };
 exports.ChallengeSubmission = ChallengeSubmission;
@@ -158,4 +161,6 @@ exports.ChallengeSubmission = ChallengeSubmission = __decorate([
 ], ChallengeSubmission);
 exports.ChallengeSubmissionSchema = mongoose_1.SchemaFactory.createForClass(ChallengeSubmission);
 exports.ChallengeSubmissionSchema.index({ userId: 1, challengeId: 1 });
+exports.ChallengeSubmissionSchema.index({ challengeId: 1, status: 1 });
+exports.ChallengeSubmissionSchema.index({ status: 1, submittedAt: -1 });
 //# sourceMappingURL=challenge.schema.js.map

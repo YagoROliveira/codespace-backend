@@ -53,6 +53,10 @@ export class Project {
 
 export const ProjectSchema = SchemaFactory.createForClass(Project);
 
+ProjectSchema.index({ isActive: 1, isFeatured: -1 });
+ProjectSchema.index({ isActive: 1, difficulty: 1 });
+ProjectSchema.index({ isActive: 1, category: 1 });
+
 // ─── User Project Progress ───
 export type UserProjectDocument = UserProject & Document;
 

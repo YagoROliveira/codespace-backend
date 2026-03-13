@@ -29,6 +29,6 @@ export declare class AuthService {
         };
         token: string;
     }>;
-    validateUser(userId: string): Promise<import("../users/schemas/user.schema").UserDocument>;
+    validateUser(userId: string): Promise<any>;
     private generateToken;
 }

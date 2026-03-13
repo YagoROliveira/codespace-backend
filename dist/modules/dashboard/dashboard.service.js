@@ -30,11 +30,11 @@ let DashboardService = class DashboardService {
     async getDashboard(userId) {
         const userObjectId = new mongoose_2.Types.ObjectId(userId);
         const [user, activeTracks, upcomingSessions, totalSessions] = await Promise.all([
-            this.userModel.findById(userId).exec(),
+            this.userModel.findById(userId).lean().exec(),
             this.progressModel
                 .find({ userId: userObjectId, status: 'in_progress' })
                 .populate('trackId')
-                .exec(),
+                .lean().exec(),
             this.sessionModel
                 .find({
                 userId: userObjectId,
@@ -44,7 +44,7 @@ let DashboardService = class DashboardService {
                 .sort({ scheduledAt: 1 })
                 .limit(3)
                 .populate('mentorId', 'name avatar')
-                .exec(),
+                .lean().exec(),
             this.sessionModel.countDocuments({
                 userId: userObjectId,
                 status: 'completed',

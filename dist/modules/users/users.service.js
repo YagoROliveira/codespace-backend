@@ -56,10 +56,10 @@ let UsersService = class UsersService {
         this.userModel = userModel;
     }
     async findAll() {
-        return this.userModel.find().exec();
+        return this.userModel.find().lean().exec();
     }
     async findById(id) {
-        const user = await this.userModel.findById(id).exec();
+        const user = await this.userModel.findById(id).lean().exec();
         if (!user)
             throw new common_1.NotFoundException('Usuário não encontrado');
         return user;

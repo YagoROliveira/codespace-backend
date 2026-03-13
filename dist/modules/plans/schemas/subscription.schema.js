@@ -73,4 +73,7 @@ exports.Subscription = Subscription = __decorate([
 exports.SubscriptionSchema = mongoose_1.SchemaFactory.createForClass(Subscription);
 exports.SubscriptionSchema.index({ userId: 1, status: 1 });
 exports.SubscriptionSchema.index({ stripePaymentIntentId: 1 });
+exports.SubscriptionSchema.index({ status: 1 });
+exports.SubscriptionSchema.index({ endDate: 1 });
+exports.SubscriptionSchema.index({ planId: 1 });
 //# sourceMappingURL=subscription.schema.js.map

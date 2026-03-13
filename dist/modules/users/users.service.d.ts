@@ -4,8 +4,8 @@ import { UpdateUserDto, UpdatePasswordDto, UpdateNotificationsDto } from './dto/
 export declare class UsersService {
     private userModel;
     constructor(userModel: Model<UserDocument>);
-    findAll(): Promise<UserDocument[]>;
-    findById(id: string): Promise<UserDocument>;
+    findAll(): Promise<any[]>;
+    findById(id: string): Promise<any>;
     findByEmail(email: string): Promise<UserDocument | null>;
     create(data: {
         name: string;

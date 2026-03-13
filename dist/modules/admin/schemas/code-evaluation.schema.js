@@ -100,4 +100,6 @@ exports.CodeEvaluation = CodeEvaluation = __decorate([
 exports.CodeEvaluationSchema = mongoose_1.SchemaFactory.createForClass(CodeEvaluation);
 exports.CodeEvaluationSchema.index({ studentId: 1, createdAt: -1 });
 exports.CodeEvaluationSchema.index({ reviewerId: 1 });
+exports.CodeEvaluationSchema.index({ status: 1 });
+exports.CodeEvaluationSchema.index({ trackId: 1 });
 //# sourceMappingURL=code-evaluation.schema.js.map

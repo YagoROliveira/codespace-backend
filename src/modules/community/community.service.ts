@@ -13,8 +13,8 @@ export class CommunityService {
   ) { }
 
   // Channels
-  async getChannels(): Promise<ChannelDocument[]> {
-    return this.channelModel.find({ isActive: true }).sort({ order: 1 }).exec();
+  async getChannels(): Promise<any[]> {
+    return this.channelModel.find({ isActive: true }).sort({ order: 1 }).lean().exec();
   }
 
   async createChannel(dto: CreateChannelDto): Promise<ChannelDocument> {
@@ -36,7 +36,7 @@ export class CommunityService {
         .skip(skip)
         .limit(limit)
         .populate('userId', 'name avatar role plan')
-        .exec(),
+        .lean().exec(),
       this.messageModel.countDocuments({
         channelId: new Types.ObjectId(channelId),
         parentMessageId: null,
@@ -51,7 +51,7 @@ export class CommunityService {
     };
   }
 
-  async getPinnedMessages(channelId: string): Promise<MessageDocument[]> {
+  async getPinnedMessages(channelId: string): Promise<any[]> {
     return this.messageModel
       .find({
         channelId: new Types.ObjectId(channelId),
@@ -59,7 +59,7 @@ export class CommunityService {
       })
       .populate('userId', 'name avatar role')
       .sort({ createdAt: -1 })
-      .exec();
+      .lean().exec();
   }
 
   async createMessage(userId: string, dto: CreateMessageDto): Promise<MessageDocument> {
@@ -112,11 +112,11 @@ export class CommunityService {
     return message;
   }
 
-  async getReplies(messageId: string): Promise<MessageDocument[]> {
+  async getReplies(messageId: string): Promise<any[]> {
     return this.messageModel
       .find({ parentMessageId: new Types.ObjectId(messageId) })
       .populate('userId', 'name avatar role plan')
       .sort({ createdAt: 1 })
-      .exec();
+      .lean().exec();
   }
 }

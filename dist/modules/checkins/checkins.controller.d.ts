@@ -14,12 +14,12 @@ export declare class CheckinsController {
     }> & {
         __v: number;
     }>;
-    getToday(userId: string): Promise<import("mongoose").Document<unknown, {}, import("./schemas/checkin.schema").CheckinDocument, {}, {}> & import("./schemas/checkin.schema").Checkin & import("mongoose").Document<import("mongoose").Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
+    getToday(userId: string): Promise<import("mongoose").FlattenMaps<import("./schemas/checkin.schema").CheckinDocument> & Required<{
         _id: import("mongoose").Types.ObjectId;
     }> & {
         __v: number;
     }>;
-    getHistory(userId: string, days?: string): Promise<(import("mongoose").Document<unknown, {}, import("./schemas/checkin.schema").CheckinDocument, {}, {}> & import("./schemas/checkin.schema").Checkin & import("mongoose").Document<import("mongoose").Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
+    getHistory(userId: string, days?: string): Promise<(import("mongoose").FlattenMaps<import("./schemas/checkin.schema").CheckinDocument> & Required<{
         _id: import("mongoose").Types.ObjectId;
     }> & {
         __v: number;

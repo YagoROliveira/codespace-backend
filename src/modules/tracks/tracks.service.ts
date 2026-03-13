@@ -13,26 +13,26 @@ export class TracksService {
     private readonly certificatesService: CertificatesService,
   ) { }
 
-  async findAll(): Promise<TrackDocument[]> {
-    return this.trackModel.find({ isPublished: true }).sort({ order: 1 }).exec();
+  async findAll(): Promise<any[]> {
+    return this.trackModel.find({ isPublished: true }).sort({ order: 1 }).lean().exec();
   }
 
-  async findById(id: string): Promise<TrackDocument> {
-    const track = await this.trackModel.findById(id).exec();
+  async findById(id: string): Promise<any> {
+    const track = await this.trackModel.findById(id).lean().exec();
     if (!track) throw new NotFoundException('Trilha não encontrada');
     return track;
   }
 
   async getTrackDetail(trackId: string, userId?: string) {
     const track = await this.findById(trackId);
-    const trackObj = track.toObject();
+    const trackObj = track;
 
     let userProgress = null;
     if (userId) {
       const progress = await this.progressModel.findOne({
         userId: new Types.ObjectId(userId),
         trackId: new Types.ObjectId(trackId),
-      }).exec();
+      }).lean().exec();
 
       if (progress) {
         userProgress = {
@@ -51,8 +51,8 @@ export class TracksService {
   }
 
   async getUserTracks(userId: string): Promise<any[]> {
-    const tracks = await this.trackModel.find({ isPublished: true }).sort({ order: 1 }).exec();
-    const progress = await this.progressModel.find({ userId: new Types.ObjectId(userId) }).exec();
+    const tracks = await this.trackModel.find({ isPublished: true }).sort({ order: 1 }).lean().exec();
+    const progress = await this.progressModel.find({ userId: new Types.ObjectId(userId) }).lean().exec();
 
     const progressMap = new Map(
       progress.map((p) => [p.trackId.toString(), p]),
@@ -61,7 +61,7 @@ export class TracksService {
     return tracks.map((track) => {
       const userProgress = progressMap.get((track._id as Types.ObjectId).toString());
       return {
-        ...track.toObject(),
+        ...track,
         userProgress: userProgress
           ? {
             status: userProgress.status,

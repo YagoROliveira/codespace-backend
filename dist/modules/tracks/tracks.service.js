@@ -26,23 +26,23 @@ let TracksService = class TracksService {
         this.certificatesService = certificatesService;
     }
     async findAll() {
-        return this.trackModel.find({ isPublished: true }).sort({ order: 1 }).exec();
+        return this.trackModel.find({ isPublished: true }).sort({ order: 1 }).lean().exec();
     }
     async findById(id) {
-        const track = await this.trackModel.findById(id).exec();
+        const track = await this.trackModel.findById(id).lean().exec();
         if (!track)
             throw new common_1.NotFoundException('Trilha não encontrada');
         return track;
     }
     async getTrackDetail(trackId, userId) {
         const track = await this.findById(trackId);
-        const trackObj = track.toObject();
+        const trackObj = track;
         let userProgress = null;
         if (userId) {
             const progress = await this.progressModel.findOne({
                 userId: new mongoose_2.Types.ObjectId(userId),
                 trackId: new mongoose_2.Types.ObjectId(trackId),
-            }).exec();
+            }).lean().exec();
             if (progress) {
                 userProgress = {
                     _id: progress._id,
@@ -58,13 +58,13 @@ let TracksService = class TracksService {
         return { ...trackObj, userProgress };
     }
     async getUserTracks(userId) {
-        const tracks = await this.trackModel.find({ isPublished: true }).sort({ order: 1 }).exec();
-        const progress = await this.progressModel.find({ userId: new mongoose_2.Types.ObjectId(userId) }).exec();
+        const tracks = await this.trackModel.find({ isPublished: true }).sort({ order: 1 }).lean().exec();
+        const progress = await this.progressModel.find({ userId: new mongoose_2.Types.ObjectId(userId) }).lean().exec();
         const progressMap = new Map(progress.map((p) => [p.trackId.toString(), p]));
         return tracks.map((track) => {
             const userProgress = progressMap.get(track._id.toString());
             return {
-                ...track.toObject(),
+                ...track,
                 userProgress: userProgress
                     ? {
                         status: userProgress.status,
