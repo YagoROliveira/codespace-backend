@@ -9,13 +9,19 @@ export class IdeContainer {
   userId: Types.ObjectId;
 
   @Prop({ required: true })
-  containerId: string; // Docker container ID
+  serviceId: string; // Docker Swarm service ID
 
   @Prop({ required: true })
-  containerName: string; // e.g. "ide-507f1f77bcf86cd799439011"
+  serviceName: string; // e.g. "ide-45ebeb26"
 
   @Prop({ default: '' })
-  url: string; // e.g. "https://ide-507f1f77.codespace.dev.br"
+  containerId: string; // Docker container ID (from task, for reference)
+
+  @Prop({ required: true })
+  containerName: string; // Same as serviceName for display
+
+  @Prop({ default: '' })
+  url: string; // e.g. "https://ide-45ebeb26.ide.codespace.com.br"
 
   @Prop({ default: '' })
   password: string; // code-server password
