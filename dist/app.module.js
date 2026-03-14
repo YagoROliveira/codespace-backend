@@ -10,6 +10,7 @@ exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const mongoose_1 = require("@nestjs/mongoose");
+const schedule_1 = require("@nestjs/schedule");
 const auth_module_1 = require("./modules/auth/auth.module");
 const users_module_1 = require("./modules/users/users.module");
 const tracks_module_1 = require("./modules/tracks/tracks.module");
@@ -40,6 +41,7 @@ exports.AppModule = AppModule = __decorate([
                 isGlobal: true,
                 envFilePath: `.env${process.env.NODE_ENV === 'production' ? '.production' : ''}`,
             }),
+            schedule_1.ScheduleModule.forRoot(),
             mongoose_1.MongooseModule.forRootAsync({
                 imports: [config_1.ConfigModule],
                 useFactory: (configService) => ({

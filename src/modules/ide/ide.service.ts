@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { ConfigService } from '@nestjs/config';
+import { Interval } from '@nestjs/schedule';
 import { Model, Types } from 'mongoose';
 import { IdeContainer, IdeContainerDocument } from './schemas/ide-container.schema';
 
@@ -21,6 +22,7 @@ export class IdeService {
   private readonly ideImage: string;
   private readonly ideCertResolver: string;
   private readonly ideDefaultFolder: string;
+  private readonly ideIdleTimeoutMs: number;
 
   constructor(
     @InjectModel(IdeContainer.name) private ideContainerModel: Model<IdeContainerDocument>,
@@ -34,6 +36,10 @@ export class IdeService {
     this.ideImage = this.configService.get<string>('IDE_IMAGE', 'codercom/code-server:latest');
     this.ideCertResolver = this.configService.get<string>('IDE_CERT_RESOLVER', 'letsencryptresolver');
     this.ideDefaultFolder = this.configService.get<string>('IDE_DEFAULT_FOLDER', '/home/coder/project');
+    this.ideIdleTimeoutMs = parseInt(
+      this.configService.get<string>('IDE_IDLE_TIMEOUT', '1800000'), // 30 min default
+      10,
+    );
   }
 
   // ───── Portainer API helpers ─────
@@ -173,8 +179,43 @@ export class IdeService {
     await this.ideContainerModel.deleteOne({ _id: record._id });
   }
 
+  async heartbeat(userId: string): Promise<void> {
+    userId = String(userId);
+    await this.ideContainerModel.updateOne(
+      { userId: new Types.ObjectId(userId), status: 'running' },
+      { $set: { lastAccessedAt: new Date() } },
+    );
+  }
+
   async listAll(): Promise<IdeContainer[]> {
     return this.ideContainerModel.find().sort({ createdAt: -1 }).lean().exec();
+  }
+
+  // ───── Auto-shutdown idle IDEs (runs every 5 minutes) ─────
+
+  @Interval(5 * 60 * 1000)
+  async handleIdleShutdown(): Promise<void> {
+    const cutoff = new Date(Date.now() - this.ideIdleTimeoutMs);
+    const idleContainers = await this.ideContainerModel.find({
+      status: 'running',
+      lastAccessedAt: { $lt: cutoff },
+    });
+
+    if (idleContainers.length === 0) return;
+
+    this.logger.log(`Found ${idleContainers.length} idle IDE(s) — shutting down...`);
+
+    for (const record of idleContainers) {
+      try {
+        await this.scaleService(record.serviceId, 0);
+        record.status = 'stopped';
+        record.stoppedAt = new Date();
+        await record.save();
+        this.logger.log(`Auto-stopped idle IDE: ${record.serviceName} (user ${record.userId})`);
+      } catch (err) {
+        this.logger.error(`Failed to auto-stop IDE ${record.serviceName}: ${err.message}`);
+      }
+    }
   }
 
   // ───── Swarm service lifecycle via Portainer Docker API ─────

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { TracksModule } from './modules/tracks/tracks.module';
@@ -28,6 +29,7 @@ import { IdeModule } from './modules/ide/ide.module';
       isGlobal: true,
       envFilePath: `.env${process.env.NODE_ENV === 'production' ? '.production' : ''}`,
     }),
+    ScheduleModule.forRoot(),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({

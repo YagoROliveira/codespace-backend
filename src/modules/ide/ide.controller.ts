@@ -28,6 +28,14 @@ export class IdeController {
     return this.ideService.stopIde(userId);
   }
 
+  /** Heartbeat — keeps IDE alive (resets inactivity timer) */
+  @UseGuards(JwtAuthGuard)
+  @Post('heartbeat')
+  async heartbeat(@CurrentUser('_id') userId: string) {
+    await this.ideService.heartbeat(userId);
+    return { ok: true };
+  }
+
   /** Get IDE status for the authenticated user */
   @UseGuards(JwtAuthGuard)
   @Get('status')
