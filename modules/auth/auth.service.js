@@ -55,6 +55,7 @@ let AuthService = class AuthService {
         this.configService = configService;
     }
     async register(dto) {
+        // Check if user exists
         const existing = await this.usersService.findByEmail(dto.email);
         if (existing) {
             throw new common_1.ConflictException('Email já cadastrado');
@@ -83,6 +84,7 @@ let AuthService = class AuthService {
         if (!isPasswordValid) {
             throw new common_1.UnauthorizedException('Credenciais inválidas');
         }
+        // Update last login
         await this.usersService.updateLastLogin(String(user._id));
         const token = this.generateToken(String(user._id), user.email);
         return {
@@ -106,6 +108,7 @@ let AuthService = class AuthService {
         return user;
     }
     async googleLogin(accessToken) {
+        // Verify the Google access token by fetching user info
         const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
             headers: { Authorization: `Bearer ${accessToken}` },
         });
@@ -149,4 +152,3 @@ exports.AuthService = AuthService = __decorate([
         jwt_1.JwtService,
         config_1.ConfigService])
 ], AuthService);
-//# sourceMappingURL=auth.service.js.map

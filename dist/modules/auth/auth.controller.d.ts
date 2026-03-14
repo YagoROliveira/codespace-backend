@@ -27,6 +27,18 @@ export declare class AuthController {
         };
         token: string;
     }>;
+    googleLogin(accessToken: string): Promise<{
+        user: {
+            id: import("mongoose").Types.ObjectId;
+            name: string;
+            email: string;
+            plan: string;
+            role: string;
+            avatar: string;
+            accountStatus: string;
+        };
+        token: string;
+    }>;
     getMe(user: any): Promise<{
         id: any;
         name: any;

@@ -25,12 +25,23 @@ export class UsersService {
     return this.userModel.findOne({ email: email.toLowerCase() }).select('+password').exec();
   }
 
-  async create(data: { name: string; email: string; password: string }): Promise<UserDocument> {
+  async create(data: { name: string; email: string; password: string; phone?: string }): Promise<UserDocument> {
     const hashedPassword = await bcrypt.hash(data.password, 12);
     const user = new this.userModel({
       ...data,
       email: data.email.toLowerCase(),
       password: hashedPassword,
+    });
+    return user.save();
+  }
+
+  async createFromGoogle(data: { name: string; email: string; avatar: string }): Promise<UserDocument> {
+    const randomPassword = await bcrypt.hash(Math.random().toString(36), 12);
+    const user = new this.userModel({
+      name: data.name,
+      email: data.email.toLowerCase(),
+      password: randomPassword,
+      avatar: data.avatar,
     });
     return user.save();
   }

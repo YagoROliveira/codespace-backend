@@ -13,12 +13,12 @@ const DEFAULT_FILES: WorkspaceFile[] = [
   },
   {
     path: 'src/index.js',
-    content: `// 🚀 Bem-vindo ao CodeSPACE IDE!
+    content: `// 🚀 Bem-vindo ao CodeSpace IDE!
 // Este é seu ambiente de desenvolvimento pessoal.
 // Crie arquivos, pastas e escreva código livremente.
 
 function saudacao(nome) {
-  return \`Olá, \${nome}! Bem-vindo ao CodeSPACE!\`;
+  return \`Olá, \${nome}! Bem-vindo ao CodeSpace!\`;
 }
 
 console.log(saudacao("Dev"));
@@ -30,7 +30,7 @@ console.log(saudacao("Dev"));
     path: 'README.md',
     content: `# Meu Projeto
 
-Bem-vindo ao seu workspace no CodeSPACE IDE! 🎉
+Bem-vindo ao seu workspace no CodeSpace IDE! 🎉
 
 ## Como usar
 

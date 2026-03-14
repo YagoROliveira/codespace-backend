@@ -20,6 +20,7 @@ export class IdeService {
   private readonly ideNetwork: string;
   private readonly ideImage: string;
   private readonly ideCertResolver: string;
+  private readonly ideDefaultFolder: string;
 
   constructor(
     @InjectModel(IdeContainer.name) private ideContainerModel: Model<IdeContainerDocument>,
@@ -32,6 +33,7 @@ export class IdeService {
     this.ideNetwork = this.configService.get<string>('IDE_NETWORK', 'network_public');
     this.ideImage = this.configService.get<string>('IDE_IMAGE', 'codercom/code-server:latest');
     this.ideCertResolver = this.configService.get<string>('IDE_CERT_RESOLVER', 'letsencryptresolver');
+    this.ideDefaultFolder = this.configService.get<string>('IDE_DEFAULT_FOLDER', '/home/coder/project');
   }
 
   // ───── Portainer API helpers ─────
@@ -199,9 +201,9 @@ export class IdeService {
       TaskTemplate: {
         ContainerSpec: {
           Image: this.ideImage,
-          Args: ['--auth', 'none'],
+          Args: ['--auth', 'none', '--default-folder', this.ideDefaultFolder],
           Env: [
-            'DEFAULT_WORKSPACE=/home/coder/project',
+            `DEFAULT_WORKSPACE=${this.ideDefaultFolder}`,
           ],
           Mounts: [
             {

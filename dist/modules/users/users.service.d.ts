@@ -11,6 +11,12 @@ export declare class UsersService {
         name: string;
         email: string;
         password: string;
+        phone?: string;
+    }): Promise<UserDocument>;
+    createFromGoogle(data: {
+        name: string;
+        email: string;
+        avatar: string;
     }): Promise<UserDocument>;
     update(id: string, dto: UpdateUserDto): Promise<UserDocument>;
     updatePassword(id: string, dto: UpdatePasswordDto): Promise<void>;
