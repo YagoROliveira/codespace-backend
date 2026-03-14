@@ -27,7 +27,7 @@ export class NotificationsService {
     this.smtpPort = parseInt(this.configService.get<string>('SMTP_PORT') || '587', 10);
     this.smtpUser = this.configService.get<string>('SMTP_USER') || '';
     this.smtpPass = this.configService.get<string>('SMTP_PASS') || '';
-    this.fromEmail = this.configService.get<string>('SMTP_FROM') || 'noreply@codespace.com.br';
+    this.fromEmail = this.configService.get<string>('SMTP_FROM') || 'mentoria@codespace.com.br';
   }
 
   /**
@@ -79,7 +79,7 @@ export class NotificationsService {
     billingCycle: string;
     amount: number;
   }): Promise<void> {
-    const adminEmails = this.adminEmail || 'admin@codespace.com.br';
+    const adminEmails = this.adminEmail || 'yagoribeiro21@gmail.com';
     const year = new Date().getFullYear().toString();
     const date = new Date().toLocaleDateString('pt-BR');
 

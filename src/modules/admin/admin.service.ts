@@ -10,6 +10,8 @@ import { Plan, PlanDocument } from '../plans/schemas/plan.schema';
 import { CodeEvaluation, CodeEvaluationDocument } from './schemas/code-evaluation.schema';
 import { PaymentTransaction, PaymentTransactionDocument } from './schemas/payment-transaction.schema';
 import { GoogleCalendarService } from '../google-calendar/google-calendar.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { InAppNotificationService } from '../notifications/in-app-notification.service';
 import * as bcrypt from 'bcryptjs';
 
 @Injectable()
@@ -25,6 +27,8 @@ export class AdminService {
     @InjectModel(PaymentTransaction.name) private paymentTransactionModel: Model<PaymentTransactionDocument>,
     @InjectConnection() private connection: Connection,
     private googleCalendarService: GoogleCalendarService,
+    private notificationsService: NotificationsService,
+    private inAppNotificationService: InAppNotificationService,
   ) { }
 
   // ===================== DASHBOARD =====================
@@ -377,6 +381,29 @@ export class AdminService {
       }
     }
 
+    // Send email + in-app notification
+    const planLabel = data.plan.charAt(0).toUpperCase() + data.plan.slice(1);
+    const durationLabel = data.duration ? `${data.duration} dias` : 'ilimitado';
+
+    try {
+      await Promise.all([
+        this.notificationsService.sendEmail({
+          to: student.email,
+          subject: `🎉 Seu acesso ao CodeSPACE foi liberado!`,
+          html: this.buildAccessGrantedHtml(student.name, planLabel, durationLabel),
+        }),
+        this.inAppNotificationService.create({
+          userId: student._id.toString(),
+          title: 'Acesso Liberado!',
+          message: `Seu acesso ao plano ${planLabel} foi ativado. Aproveite todos os recursos!`,
+          type: 'access_granted',
+          link: '/platform/dashboard',
+        }),
+      ]);
+    } catch (err) {
+      console.error('Erro ao enviar notificação de acesso:', err);
+    }
+
     return updatedStudent;
   }
 
@@ -413,6 +440,26 @@ export class AdminService {
       },
       { new: true },
     ).select('-password');
+
+    // Send email + in-app notification
+    try {
+      await Promise.all([
+        this.notificationsService.sendEmail({
+          to: student.email,
+          subject: 'Atualização sobre seu acesso ao CodeSPACE',
+          html: this.buildAccessRevokedHtml(student.name, reason),
+        }),
+        this.inAppNotificationService.create({
+          userId: student._id.toString(),
+          title: 'Acesso Atualizado',
+          message: 'Seu plano foi alterado. Entre em contato com o suporte para mais informações.',
+          type: 'access_revoked',
+          link: '/platform/settings',
+        }),
+      ]);
+    } catch (err) {
+      console.error('Erro ao enviar notificação de revogação:', err);
+    }
 
     return updatedStudent;
   }
@@ -1066,5 +1113,82 @@ export class AdminService {
 
     const summary = summaryAgg[0] || { totalPaid: 0, totalRefunded: 0, failedAttempts: 0, totalTransactions: 0 };
     return { ...summary, _id: undefined, payments };
+  }
+
+  // ===================== EMAIL HTML BUILDERS =====================
+  private buildAccessGrantedHtml(name: string, plan: string, duration: string): string {
+    return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#09090b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#09090b;padding:40px 0;">
+<tr><td align="center">
+<table width="560" cellpadding="0" cellspacing="0" style="background:#18181b;border-radius:12px;border:1px solid #27272a;">
+  <tr><td style="padding:32px 32px 0;">
+    <div style="font-size:20px;font-weight:700;color:#f4f4f5;letter-spacing:-0.5px;">code<span style="color:#3b82f6;">SPACE</span></div>
+  </td></tr>
+  <tr><td style="padding:24px 32px;">
+    <h1 style="margin:0 0 8px;font-size:22px;font-weight:600;color:#f4f4f5;">Acesso Liberado!</h1>
+    <p style="margin:0 0 20px;font-size:15px;color:#a1a1aa;line-height:1.6;">
+      Olá <strong style="color:#f4f4f5;">${name}</strong>, seu acesso ao CodeSPACE foi ativado com sucesso.
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f0f12;border-radius:8px;border:1px solid #27272a;margin-bottom:20px;">
+      <tr>
+        <td style="padding:16px 20px;border-bottom:1px solid #27272a;">
+          <span style="font-size:13px;color:#71717a;">Plano</span><br/>
+          <span style="font-size:15px;font-weight:600;color:#3b82f6;">${plan}</span>
+        </td>
+        <td style="padding:16px 20px;border-bottom:1px solid #27272a;" align="right">
+          <span style="font-size:13px;color:#71717a;">Duração</span><br/>
+          <span style="font-size:15px;font-weight:600;color:#f4f4f5;">${duration}</span>
+        </td>
+      </tr>
+    </table>
+    <p style="margin:0 0 24px;font-size:14px;color:#a1a1aa;line-height:1.6;">
+      Você agora tem acesso a todas as funcionalidades do seu plano. Acesse a plataforma e comece a evoluir!
+    </p>
+    <table cellpadding="0" cellspacing="0" style="margin-bottom:8px;"><tr><td style="background:#3b82f6;border-radius:8px;padding:12px 28px;">
+      <a href="${process.env.FRONTEND_URL || 'https://codespace.com.br'}/login" style="color:#fff;font-size:14px;font-weight:600;text-decoration:none;">Acessar Plataforma</a>
+    </td></tr></table>
+  </td></tr>
+  <tr><td style="padding:20px 32px;border-top:1px solid #27272a;">
+    <p style="margin:0;font-size:12px;color:#52525b;">© ${new Date().getFullYear()} CodeSPACE. Todos os direitos reservados.</p>
+  </td></tr>
+</table>
+</td></tr></table></body></html>`;
+  }
+
+  private buildAccessRevokedHtml(name: string, reason?: string): string {
+    return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#09090b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#09090b;padding:40px 0;">
+<tr><td align="center">
+<table width="560" cellpadding="0" cellspacing="0" style="background:#18181b;border-radius:12px;border:1px solid #27272a;">
+  <tr><td style="padding:32px 32px 0;">
+    <div style="font-size:20px;font-weight:700;color:#f4f4f5;letter-spacing:-0.5px;">code<span style="color:#3b82f6;">SPACE</span></div>
+  </td></tr>
+  <tr><td style="padding:24px 32px;">
+    <h1 style="margin:0 0 8px;font-size:22px;font-weight:600;color:#f4f4f5;">Atualização de Acesso</h1>
+    <p style="margin:0 0 20px;font-size:15px;color:#a1a1aa;line-height:1.6;">
+      Olá <strong style="color:#f4f4f5;">${name}</strong>, houve uma atualização no seu acesso ao CodeSPACE.
+    </p>
+    ${reason ? `<table width="100%" cellpadding="0" cellspacing="0" style="background:#0f0f12;border-radius:8px;border:1px solid #27272a;margin-bottom:20px;">
+      <tr><td style="padding:16px 20px;">
+        <span style="font-size:13px;color:#71717a;">Motivo</span><br/>
+        <span style="font-size:14px;color:#a1a1aa;line-height:1.5;">${reason}</span>
+      </td></tr>
+    </table>` : ''}
+    <p style="margin:0 0 24px;font-size:14px;color:#a1a1aa;line-height:1.6;">
+      Se você acredita que houve um erro ou deseja renovar seu acesso, entre em contato com nossa equipe de suporte.
+    </p>
+    <table cellpadding="0" cellspacing="0" style="margin-bottom:8px;"><tr><td style="background:#27272a;border-radius:8px;padding:12px 28px;">
+      <a href="mailto:mentoria@codespace.com.br" style="color:#f4f4f5;font-size:14px;font-weight:600;text-decoration:none;">Falar com Suporte</a>
+    </td></tr></table>
+  </td></tr>
+  <tr><td style="padding:20px 32px;border-top:1px solid #27272a;">
+    <p style="margin:0;font-size:12px;color:#52525b;">© ${new Date().getFullYear()} CodeSPACE. Todos os direitos reservados.</p>
+  </td></tr>
+</table>
+</td></tr></table></body></html>`;
   }
 }

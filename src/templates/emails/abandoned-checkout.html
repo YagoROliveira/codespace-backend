@@ -1,195 +1,70 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Finalize sua compra - Codespace</title>
+  <title>Finalize sua compra - CodeSPACE</title>
 </head>
+<body style="margin:0;padding:0;background-color:#09090b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:#09090b;">
+  <tr><td align="center" style="padding:48px 16px;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="560" style="max-width:560px;width:100%;">
 
-<body
-  style="margin: 0; padding: 0; background-color: #0a0a0a; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #0a0a0a;">
-    <tr>
-      <td align="center" style="padding: 40px 16px;">
-        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600"
-          style="max-width: 600px; width: 100%;">
+      <!-- Logo -->
+      <tr><td style="padding-bottom:32px;">
+        <span style="font-size:22px;font-weight:700;color:#f4f4f5;letter-spacing:-0.5px;">code<span style="color:#3b82f6;">SPACE</span></span>
+      </td></tr>
 
-          <!-- Logo -->
-          <tr>
-            <td align="center" style="padding-bottom: 32px;">
-              <img src="https://www.codespace.com.br/images/logo.png" alt="Codespace" width="160"
-                style="display: block;" />
-            </td>
-          </tr>
+      <!-- Card -->
+      <tr><td style="background:#18181b;border:1px solid #27272a;border-radius:12px;overflow:hidden;">
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+          <tr><td style="padding:32px;">
 
-          <!-- Main Card -->
-          <tr>
-            <td
-              style="background: linear-gradient(135deg, #111111 0%, #141414 100%); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; overflow: hidden;">
+            <p style="margin:0 0 24px;font-size:15px;color:#a1a1aa;line-height:1.6;">
+              Olá <strong style="color:#f4f4f5;">{{studentName}}</strong>,
+            </p>
+            <p style="margin:0 0 16px;font-size:15px;color:#a1a1aa;line-height:1.6;">
+              Notamos que você iniciou a assinatura do plano <strong style="color:#3b82f6;">{{planName}}</strong> mas não finalizou o pagamento.
+            </p>
+            <p style="margin:0 0 24px;font-size:14px;color:#71717a;line-height:1.6;">
+              Sua vaga ainda está reservada. Finalize agora e comece a evoluir.
+            </p>
 
-              <!-- Blue Header Banner -->
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-                <tr>
-                  <td
-                    style="background: linear-gradient(135deg, #3b82f6 0%, #4FA3D1 100%); padding: 28px 32px; text-align: center;">
-                    <div style="font-size: 40px; margin-bottom: 8px;">🛒</div>
-                    <h1 style="margin: 0; color: #ffffff; font-size: 22px; font-weight: 700;">Você esqueceu algo?</h1>
-                    <p style="margin: 8px 0 0; color: rgba(255,255,255,0.85); font-size: 14px;">Sua assinatura está
-                      esperando por você</p>
-                  </td>
-                </tr>
-              </table>
+            <!-- Plan Box -->
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
+              style="background:#0f0f12;border:1px solid #27272a;border-radius:8px;margin-bottom:24px;">
+              <tr>
+                <td style="padding:16px 20px;">
+                  <span style="font-size:12px;color:#71717a;">Plano</span><br/>
+                  <span style="font-size:16px;font-weight:700;color:#f4f4f5;">{{planName}}</span>
+                  <span style="font-size:13px;color:#71717a;margin-left:8px;">{{billingCycle}}</span>
+                </td>
+                <td style="padding:16px 20px;" align="right">
+                  <span style="font-size:12px;color:#71717a;">A partir de</span><br/>
+                  <span style="font-size:18px;font-weight:700;color:#3b82f6;">R$ {{amount}}</span>
+                </td>
+              </tr>
+            </table>
 
-              <!-- Body Content -->
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-                <tr>
-                  <td style="padding: 32px;">
-                    <p style="margin: 0 0 20px; color: #e5e5e5; font-size: 15px; line-height: 1.6;">
-                      Olá <strong style="color: #ffffff;">{{studentName}}</strong>,
-                    </p>
-                    <p style="margin: 0 0 16px; color: #a3a3a3; font-size: 14px; line-height: 1.6;">
-                      Notamos que você iniciou a assinatura do plano <strong
-                        style="color: #4FA3D1;">{{planName}}</strong> mas não finalizou o pagamento. Acontece com todo
-                      mundo! 😊
-                    </p>
-                    <p style="margin: 0 0 24px; color: #a3a3a3; font-size: 14px; line-height: 1.6;">
-                      Sua vaga ainda está reservada. Finalize agora e comece a acelerar sua carreira como desenvolvedor.
-                    </p>
+            <!-- CTA -->
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-bottom:8px;">
+              <tr><td style="background:#3b82f6;border-radius:8px;padding:12px 28px;">
+                <a href="https://www.codespace.com.br/platform/checkout/{{planSlug}}" style="color:#fff;font-size:14px;font-weight:600;text-decoration:none;">Finalizar Assinatura</a>
+              </td></tr>
+            </table>
 
-                    <!-- Plan Summary Box -->
-                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
-                      style="background-color: rgba(79,163,209,0.05); border: 1px solid rgba(79,163,209,0.15); border-radius: 12px; margin-bottom: 24px;">
-                      <tr>
-                        <td style="padding: 20px;">
-                          <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-                            <tr>
-                              <td style="vertical-align: top; width: 60%;">
-                                <p
-                                  style="margin: 0 0 4px; color: #4FA3D1; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">
-                                  Seu plano</p>
-                                <p style="margin: 0 0 4px; color: #ffffff; font-size: 18px; font-weight: 700;">
-                                  {{planName}}</p>
-                                <p style="margin: 0; color: #737373; font-size: 12px;">{{billingCycle}}</p>
-                              </td>
-                              <td style="vertical-align: top; text-align: right;">
-                                <p style="margin: 0 0 4px; color: #737373; font-size: 11px;">A partir de</p>
-                                <p style="margin: 0; color: #4FA3D1; font-size: 24px; font-weight: 700;">R$ {{amount}}
-                                </p>
-                                <p style="margin: 0; color: #737373; font-size: 11px;">/{{billingCycleShort}}</p>
-                              </td>
-                            </tr>
-                          </table>
-                        </td>
-                      </tr>
-                    </table>
-
-                    <!-- Benefits reminder -->
-                    <p
-                      style="margin: 0 0 12px; color: #737373; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">
-                      O que você vai ter acesso</p>
-                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
-                      style="margin-bottom: 28px;">
-                      <tr>
-                        <td style="padding: 6px 0; color: #a3a3a3; font-size: 13px;">
-                          <span style="color: #4FA3D1; margin-right: 8px;">🎯</span> Trilhas de estudo completas do zero
-                          ao avançado
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style="padding: 6px 0; color: #a3a3a3; font-size: 13px;">
-                          <span style="color: #4FA3D1; margin-right: 8px;">👨‍💻</span> Mentorias ao vivo com devs
-                          seniores
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style="padding: 6px 0; color: #a3a3a3; font-size: 13px;">
-                          <span style="color: #4FA3D1; margin-right: 8px;">🚀</span> Projetos reais para seu portfólio
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style="padding: 6px 0; color: #a3a3a3; font-size: 13px;">
-                          <span style="color: #4FA3D1; margin-right: 8px;">📜</span> Certificados reconhecidos
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style="padding: 6px 0; color: #a3a3a3; font-size: 13px;">
-                          <span style="color: #4FA3D1; margin-right: 8px;">💼</span> Preparação para entrevistas e vagas
-                        </td>
-                      </tr>
-                    </table>
-
-                    <!-- CTA Button -->
-                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-                      <tr>
-                        <td align="center" style="padding-bottom: 16px;">
-                          <a href="https://www.codespace.com.br/platform/checkout/{{planSlug}}"
-                            style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #f59e0b 0%, #4FA3D1 100%); color: #000000; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 15px;">
-                            Finalizar Minha Assinatura →
-                          </a>
-                        </td>
-                      </tr>
-                    </table>
-
-                    <!-- Urgency note -->
-                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
-                      style="background-color: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.12); border-radius: 10px;">
-                      <tr>
-                        <td style="padding: 14px 16px; text-align: center;">
-                          <p style="margin: 0; color: #fbbf24; font-size: 12px; font-weight: 500;">
-                            ⏰ Não perca tempo — cada dia conta na sua evolução como dev!
-                          </p>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-
-          <!-- Social Proof -->
-          <tr>
-            <td style="padding: 24px 16px 0;">
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
-                style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px;">
-                <tr>
-                  <td style="padding: 16px 20px; text-align: center;">
-                    <p style="margin: 0 0 4px; color: #e5e5e5; font-size: 13px; font-weight: 600;">
-                      ⭐ Mais de 500 devs já estão evoluindo com o Codespace
-                    </p>
-                    <p style="margin: 0; color: #737373; font-size: 11px;">
-                      Junte-se à comunidade que não para de crescer
-                    </p>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-
-          <!-- Footer -->
-          <tr>
-            <td style="padding: 32px 16px; text-align: center;">
-              <p style="margin: 0 0 8px; color: #525252; font-size: 12px;">
-                Codespace — Mentoria Premium para Desenvolvedores
-              </p>
-              <p style="margin: 0 0 16px; color: #404040; font-size: 11px;">
-                Precisa de ajuda?
-                <a href="https://wa.me/5564981537871?text=Ol%C3%A1!%20Tive%20um%20problema%20ao%20finalizar%20minha%20compra."
-                  style="color: #4FA3D1; text-decoration: none;">Fale com a gente pelo WhatsApp</a>
-              </p>
-              <p style="margin: 0; color: #333333; font-size: 10px;">
-                © {{year}} Codespace. Todos os direitos reservados.<br>
-                <a href="https://www.codespace.com.br" style="color: #404040; text-decoration: none;">Cancelar
-                  inscrição</a>
-              </p>
-            </td>
-          </tr>
-
+          </td></tr>
         </table>
-      </td>
-    </tr>
-  </table>
-</body>
+      </td></tr>
 
+      <!-- Footer -->
+      <tr><td style="padding:24px 0 0;text-align:center;">
+        <p style="margin:0 0 6px;font-size:12px;color:#52525b;">Dúvidas? <a href="https://wa.me/5564981537871" style="color:#3b82f6;text-decoration:none;">Fale conosco</a></p>
+        <p style="margin:0;font-size:11px;color:#3f3f46;">© {{year}} CodeSPACE. Todos os direitos reservados.</p>
+      </td></tr>
+
+    </table>
+  </td></tr>
+</table>
+</body>
 </html>

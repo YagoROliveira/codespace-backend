@@ -22,6 +22,8 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { GoogleCalendarModule } from './modules/google-calendar/google-calendar.module';
 import { WorkspacesModule } from './modules/workspaces/workspaces.module';
 import { IdeModule } from './modules/ide/ide.module';
+import { UploadsModule } from './modules/uploads/uploads.module';
+import { SchedulesModule } from './modules/schedules/schedules.module';
 
 @Module({
   imports: [
@@ -57,6 +59,8 @@ import { IdeModule } from './modules/ide/ide.module';
     GoogleCalendarModule,
     WorkspacesModule,
     IdeModule,
+    UploadsModule,
+    SchedulesModule,
   ],
 })
 export class AppModule { }

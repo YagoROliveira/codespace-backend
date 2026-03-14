@@ -10,6 +10,7 @@ import { Subscription, SubscriptionSchema } from '../plans/schemas/subscription.
 import { Plan, PlanSchema } from '../plans/schemas/plan.schema';
 import { CodeEvaluation, CodeEvaluationSchema } from './schemas/code-evaluation.schema';
 import { PaymentTransaction, PaymentTransactionSchema } from './schemas/payment-transaction.schema';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { PaymentTransaction, PaymentTransactionSchema } from './schemas/payment-
       { name: CodeEvaluation.name, schema: CodeEvaluationSchema },
       { name: PaymentTransaction.name, schema: PaymentTransactionSchema },
     ]),
+    NotificationsModule,
   ],
   controllers: [AdminController],
   providers: [AdminService],
