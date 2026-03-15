@@ -10,7 +10,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 @Controller('lab')
 export class LabController {
-  constructor(private readonly labService: LabService) {}
+  constructor(private readonly labService: LabService) { }
 
   // ─── Student endpoints ───
 

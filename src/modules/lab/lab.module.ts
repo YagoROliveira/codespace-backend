@@ -16,4 +16,4 @@ import { LabExercise, LabExerciseSchema } from './schemas/lab-exercise.schema';
   providers: [LabService],
   exports: [LabService],
 })
-export class LabModule {}
+export class LabModule { }

@@ -1,7 +1,7 @@
 import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Storage } from '@google-cloud/storage';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 import * as path from 'path';
 
 @Injectable()
@@ -51,7 +51,7 @@ export class UploadsService {
     }
 
     const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
-    const filename = `${folder}/${uuidv4()}${ext}`;
+    const filename = `${folder}/${randomUUID()}${ext}`;
 
     const bucket = this.storage.bucket(this.bucketName);
     const blob = bucket.file(filename);
