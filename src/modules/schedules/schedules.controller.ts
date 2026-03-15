@@ -26,7 +26,7 @@ import {
 @Controller('schedules')
 @UseGuards(JwtAuthGuard)
 export class SchedulesController {
-  constructor(private readonly schedulesService: SchedulesService) {}
+  constructor(private readonly schedulesService: SchedulesService) { }
 
   // ─── TEMPLATES (Admin/Mentor) ───
 

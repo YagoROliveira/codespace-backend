@@ -10,7 +10,7 @@ import { InAppNotificationService } from './in-app-notification.service';
 export class NotificationsController {
   constructor(
     private readonly inAppService: InAppNotificationService,
-  ) {}
+  ) { }
 
   /** Get notifications for current user */
   @Get()

@@ -25,7 +25,7 @@ export class SchedulesService {
     @InjectModel(Plan.name) private planModel: Model<PlanDocument>,
     @InjectModel(Subscription.name) private subscriptionModel: Model<SubscriptionDocument>,
     @InjectModel(Session.name) private sessionModel: Model<SessionDocument>,
-  ) {}
+  ) { }
 
   // ─── TEMPLATES (Admin/Mentor) ───
 

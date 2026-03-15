@@ -9,4 +9,4 @@ import { UploadsService } from './uploads.service';
   providers: [UploadsService],
   exports: [UploadsService],
 })
-export class UploadsModule {}
+export class UploadsModule { }

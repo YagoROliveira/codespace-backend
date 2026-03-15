@@ -24,4 +24,4 @@ import { Session, SessionSchema } from '../sessions/schemas/session.schema';
   providers: [SchedulesService],
   exports: [SchedulesService],
 })
-export class SchedulesModule {}
+export class SchedulesModule { }

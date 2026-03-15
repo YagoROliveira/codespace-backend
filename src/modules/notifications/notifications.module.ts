@@ -26,4 +26,4 @@ import {
   providers: [NotificationsService, EmailTemplateService, InAppNotificationService],
   exports: [NotificationsService, EmailTemplateService, InAppNotificationService],
 })
-export class NotificationsModule {}
+export class NotificationsModule { }

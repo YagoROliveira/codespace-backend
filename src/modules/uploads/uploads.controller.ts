@@ -18,7 +18,7 @@ const ALLOWED_MIME_TYPES = [
 @Controller('uploads')
 @UseGuards(JwtAuthGuard)
 export class UploadsController {
-  constructor(private readonly uploadsService: UploadsService) {}
+  constructor(private readonly uploadsService: UploadsService) { }
 
   @Post('image')
   @UseInterceptors(

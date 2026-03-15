@@ -13,7 +13,7 @@ export class InAppNotificationService {
   constructor(
     @InjectModel(InAppNotification.name)
     private notifModel: Model<InAppNotificationDocument>,
-  ) {}
+  ) { }
 
   /** Create a notification for a user */
   async create(data: {

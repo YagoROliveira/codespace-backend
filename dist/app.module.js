@@ -31,6 +31,9 @@ const notifications_module_1 = require("./modules/notifications/notifications.mo
 const google_calendar_module_1 = require("./modules/google-calendar/google-calendar.module");
 const workspaces_module_1 = require("./modules/workspaces/workspaces.module");
 const ide_module_1 = require("./modules/ide/ide.module");
+const uploads_module_1 = require("./modules/uploads/uploads.module");
+const schedules_module_1 = require("./modules/schedules/schedules.module");
+const lab_module_1 = require("./modules/lab/lab.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -69,6 +72,9 @@ exports.AppModule = AppModule = __decorate([
             google_calendar_module_1.GoogleCalendarModule,
             workspaces_module_1.WorkspacesModule,
             ide_module_1.IdeModule,
+            uploads_module_1.UploadsModule,
+            schedules_module_1.SchedulesModule,
+            lab_module_1.LabModule,
         ],
     })
 ], AppModule);

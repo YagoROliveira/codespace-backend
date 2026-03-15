@@ -24,6 +24,7 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
 import { IdeModule } from './modules/ide/ide.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { SchedulesModule } from './modules/schedules/schedules.module';
+import { LabModule } from './modules/lab/lab.module';
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { SchedulesModule } from './modules/schedules/schedules.module';
     IdeModule,
     UploadsModule,
     SchedulesModule,
+    LabModule,
   ],
 })
 export class AppModule { }

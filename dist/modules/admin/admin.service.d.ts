@@ -8,6 +8,8 @@ import { PlanDocument } from '../plans/schemas/plan.schema';
 import { CodeEvaluationDocument } from './schemas/code-evaluation.schema';
 import { PaymentTransactionDocument } from './schemas/payment-transaction.schema';
 import { GoogleCalendarService } from '../google-calendar/google-calendar.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { InAppNotificationService } from '../notifications/in-app-notification.service';
 export declare class AdminService {
     private userModel;
     private trackModel;
@@ -19,7 +21,9 @@ export declare class AdminService {
     private paymentTransactionModel;
     private connection;
     private googleCalendarService;
-    constructor(userModel: Model<UserDocument>, trackModel: Model<TrackDocument>, progressModel: Model<UserTrackProgressDocument>, sessionModel: Model<SessionDocument>, subscriptionModel: Model<SubscriptionDocument>, planModel: Model<PlanDocument>, codeEvaluationModel: Model<CodeEvaluationDocument>, paymentTransactionModel: Model<PaymentTransactionDocument>, connection: Connection, googleCalendarService: GoogleCalendarService);
+    private notificationsService;
+    private inAppNotificationService;
+    constructor(userModel: Model<UserDocument>, trackModel: Model<TrackDocument>, progressModel: Model<UserTrackProgressDocument>, sessionModel: Model<SessionDocument>, subscriptionModel: Model<SubscriptionDocument>, planModel: Model<PlanDocument>, codeEvaluationModel: Model<CodeEvaluationDocument>, paymentTransactionModel: Model<PaymentTransactionDocument>, connection: Connection, googleCalendarService: GoogleCalendarService, notificationsService: NotificationsService, inAppNotificationService: InAppNotificationService);
     getDashboardStats(): Promise<{
         totalStudents: number;
         activeStudents: number;
@@ -390,4 +394,6 @@ export declare class AdminService {
         invoiceUrl?: string;
     }): Promise<any>;
     getStudentPaymentSummary(studentId: string): Promise<any>;
+    private buildAccessGrantedHtml;
+    private buildAccessRevokedHtml;
 }
