@@ -7,6 +7,7 @@ import { Subscription, SubscriptionDocument } from '../plans/schemas/subscriptio
 import { PlanDocument } from '../plans/schemas/plan.schema';
 import { CodeEvaluationDocument } from './schemas/code-evaluation.schema';
 import { PaymentTransactionDocument } from './schemas/payment-transaction.schema';
+import { StudyCronogramDocument } from './schemas/study-cronogram.schema';
 import { GoogleCalendarService } from '../google-calendar/google-calendar.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { InAppNotificationService } from '../notifications/in-app-notification.service';
@@ -19,11 +20,12 @@ export declare class AdminService {
     private planModel;
     private codeEvaluationModel;
     private paymentTransactionModel;
+    private cronogramModel;
     private connection;
     private googleCalendarService;
     private notificationsService;
     private inAppNotificationService;
-    constructor(userModel: Model<UserDocument>, trackModel: Model<TrackDocument>, progressModel: Model<UserTrackProgressDocument>, sessionModel: Model<SessionDocument>, subscriptionModel: Model<SubscriptionDocument>, planModel: Model<PlanDocument>, codeEvaluationModel: Model<CodeEvaluationDocument>, paymentTransactionModel: Model<PaymentTransactionDocument>, connection: Connection, googleCalendarService: GoogleCalendarService, notificationsService: NotificationsService, inAppNotificationService: InAppNotificationService);
+    constructor(userModel: Model<UserDocument>, trackModel: Model<TrackDocument>, progressModel: Model<UserTrackProgressDocument>, sessionModel: Model<SessionDocument>, subscriptionModel: Model<SubscriptionDocument>, planModel: Model<PlanDocument>, codeEvaluationModel: Model<CodeEvaluationDocument>, paymentTransactionModel: Model<PaymentTransactionDocument>, cronogramModel: Model<StudyCronogramDocument>, connection: Connection, googleCalendarService: GoogleCalendarService, notificationsService: NotificationsService, inAppNotificationService: InAppNotificationService);
     getDashboardStats(): Promise<{
         totalStudents: number;
         activeStudents: number;

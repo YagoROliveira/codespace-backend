@@ -160,6 +160,39 @@ let AdminController = class AdminController {
     async createPaymentTransaction(data) {
         return this.adminService.createPaymentTransaction(data);
     }
+    async getStudentCronogram(studentId) {
+        return this.adminService.getStudentCronogram(studentId);
+    }
+    async getStudentCronogramHistory(studentId) {
+        return this.adminService.getStudentCronogramHistory(studentId);
+    }
+    async generateCronogram(studentId, adminId, data) {
+        return this.adminService.generateCronogram(adminId, { ...data, userId: studentId });
+    }
+    async updateCronogram(cronogramId, data) {
+        return this.adminService.updateCronogram(cronogramId, data);
+    }
+    async recalculateCronogram(cronogramId) {
+        return this.adminService.recalculateCronogram(cronogramId);
+    }
+    async syncCronogramProgress(cronogramId) {
+        return this.adminService.syncCronogramProgress(cronogramId);
+    }
+    async updateCronogramTrackNotes(cronogramId, trackItemId, notes) {
+        return this.adminService.updateCronogramTrackNotes(cronogramId, trackItemId, notes);
+    }
+    async addCronogramMilestone(cronogramId, data) {
+        return this.adminService.addCronogramMilestone(cronogramId, data);
+    }
+    async completeCronogramMilestone(cronogramId, milestoneId) {
+        return this.adminService.completeCronogramMilestone(cronogramId, milestoneId);
+    }
+    async deleteCronogramMilestone(cronogramId, milestoneId) {
+        return this.adminService.deleteCronogramMilestone(cronogramId, milestoneId);
+    }
+    async deleteCronogram(cronogramId) {
+        return this.adminService.deleteCronogram(cronogramId);
+    }
 };
 exports.AdminController = AdminController;
 __decorate([
@@ -505,6 +538,91 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "createPaymentTransaction", null);
+__decorate([
+    (0, common_1.Get)('students/:id/cronogram'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "getStudentCronogram", null);
+__decorate([
+    (0, common_1.Get)('students/:id/cronogram/history'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "getStudentCronogramHistory", null);
+__decorate([
+    (0, common_1.Post)('students/:id/cronogram'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, current_user_decorator_1.CurrentUser)('_id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Object]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "generateCronogram", null);
+__decorate([
+    (0, common_1.Put)('cronogram/:cronogramId'),
+    __param(0, (0, common_1.Param)('cronogramId')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "updateCronogram", null);
+__decorate([
+    (0, common_1.Post)('cronogram/:cronogramId/recalculate'),
+    __param(0, (0, common_1.Param)('cronogramId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "recalculateCronogram", null);
+__decorate([
+    (0, common_1.Post)('cronogram/:cronogramId/sync'),
+    __param(0, (0, common_1.Param)('cronogramId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "syncCronogramProgress", null);
+__decorate([
+    (0, common_1.Put)('cronogram/:cronogramId/tracks/:trackItemId/notes'),
+    __param(0, (0, common_1.Param)('cronogramId')),
+    __param(1, (0, common_1.Param)('trackItemId')),
+    __param(2, (0, common_1.Body)('notes')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "updateCronogramTrackNotes", null);
+__decorate([
+    (0, common_1.Post)('cronogram/:cronogramId/milestones'),
+    __param(0, (0, common_1.Param)('cronogramId')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "addCronogramMilestone", null);
+__decorate([
+    (0, common_1.Post)('cronogram/:cronogramId/milestones/:milestoneId/complete'),
+    __param(0, (0, common_1.Param)('cronogramId')),
+    __param(1, (0, common_1.Param)('milestoneId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "completeCronogramMilestone", null);
+__decorate([
+    (0, common_1.Delete)('cronogram/:cronogramId/milestones/:milestoneId'),
+    __param(0, (0, common_1.Param)('cronogramId')),
+    __param(1, (0, common_1.Param)('milestoneId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "deleteCronogramMilestone", null);
+__decorate([
+    (0, common_1.Delete)('cronogram/:cronogramId'),
+    __param(0, (0, common_1.Param)('cronogramId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "deleteCronogram", null);
 exports.AdminController = AdminController = __decorate([
     (0, common_1.Controller)('admin'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),

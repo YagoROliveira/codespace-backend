@@ -368,4 +368,89 @@ export class AdminController {
   ): Promise<any> {
     return this.adminService.createPaymentTransaction(data);
   }
+
+  // ===================== STUDY CRONOGRAM =====================
+
+  @Get('students/:id/cronogram')
+  async getStudentCronogram(@Param('id') studentId: string): Promise<any> {
+    return this.adminService.getStudentCronogram(studentId);
+  }
+
+  @Get('students/:id/cronogram/history')
+  async getStudentCronogramHistory(@Param('id') studentId: string): Promise<any> {
+    return this.adminService.getStudentCronogramHistory(studentId);
+  }
+
+  @Post('students/:id/cronogram')
+  async generateCronogram(
+    @Param('id') studentId: string,
+    @CurrentUser('_id') adminId: string,
+    @Body() data: {
+      name?: string;
+      description?: string;
+      startDate: string;
+      dailyStudyHours: number;
+      weeklyStudyDays?: number[];
+      trackIds?: string[];
+      status?: string;
+    },
+  ): Promise<any> {
+    return this.adminService.generateCronogram(adminId, { ...data, userId: studentId });
+  }
+
+  @Put('cronogram/:cronogramId')
+  async updateCronogram(
+    @Param('cronogramId') cronogramId: string,
+    @Body() data: Record<string, any>,
+  ): Promise<any> {
+    return this.adminService.updateCronogram(cronogramId, data);
+  }
+
+  @Post('cronogram/:cronogramId/recalculate')
+  async recalculateCronogram(@Param('cronogramId') cronogramId: string): Promise<any> {
+    return this.adminService.recalculateCronogram(cronogramId);
+  }
+
+  @Post('cronogram/:cronogramId/sync')
+  async syncCronogramProgress(@Param('cronogramId') cronogramId: string): Promise<any> {
+    return this.adminService.syncCronogramProgress(cronogramId);
+  }
+
+  @Put('cronogram/:cronogramId/tracks/:trackItemId/notes')
+  async updateCronogramTrackNotes(
+    @Param('cronogramId') cronogramId: string,
+    @Param('trackItemId') trackItemId: string,
+    @Body('notes') notes: string,
+  ): Promise<any> {
+    return this.adminService.updateCronogramTrackNotes(cronogramId, trackItemId, notes);
+  }
+
+  @Post('cronogram/:cronogramId/milestones')
+  async addCronogramMilestone(
+    @Param('cronogramId') cronogramId: string,
+    @Body() data: { title: string; description?: string; targetDate: string },
+  ): Promise<any> {
+    return this.adminService.addCronogramMilestone(cronogramId, data);
+  }
+
+  @Post('cronogram/:cronogramId/milestones/:milestoneId/complete')
+  async completeCronogramMilestone(
+    @Param('cronogramId') cronogramId: string,
+    @Param('milestoneId') milestoneId: string,
+  ): Promise<any> {
+    return this.adminService.completeCronogramMilestone(cronogramId, milestoneId);
+  }
+
+  @Delete('cronogram/:cronogramId/milestones/:milestoneId')
+  async deleteCronogramMilestone(
+    @Param('cronogramId') cronogramId: string,
+    @Param('milestoneId') milestoneId: string,
+  ): Promise<any> {
+    return this.adminService.deleteCronogramMilestone(cronogramId, milestoneId);
+  }
+
+  @Delete('cronogram/:cronogramId')
+  async deleteCronogram(@Param('cronogramId') cronogramId: string): Promise<any> {
+    return this.adminService.deleteCronogram(cronogramId);
+  }
 }

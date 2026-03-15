@@ -19,6 +19,7 @@ const subscription_schema_1 = require("../plans/schemas/subscription.schema");
 const plan_schema_1 = require("../plans/schemas/plan.schema");
 const code_evaluation_schema_1 = require("./schemas/code-evaluation.schema");
 const payment_transaction_schema_1 = require("./schemas/payment-transaction.schema");
+const study_cronogram_schema_1 = require("./schemas/study-cronogram.schema");
 const notifications_module_1 = require("../notifications/notifications.module");
 let AdminModule = class AdminModule {
 };
@@ -35,6 +36,7 @@ exports.AdminModule = AdminModule = __decorate([
                 { name: plan_schema_1.Plan.name, schema: plan_schema_1.PlanSchema },
                 { name: code_evaluation_schema_1.CodeEvaluation.name, schema: code_evaluation_schema_1.CodeEvaluationSchema },
                 { name: payment_transaction_schema_1.PaymentTransaction.name, schema: payment_transaction_schema_1.PaymentTransactionSchema },
+                { name: study_cronogram_schema_1.StudyCronogram.name, schema: study_cronogram_schema_1.StudyCronogramSchema },
             ]),
             notifications_module_1.NotificationsModule,
         ],

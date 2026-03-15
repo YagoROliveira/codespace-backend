@@ -57,12 +57,13 @@ const subscription_schema_1 = require("../plans/schemas/subscription.schema");
 const plan_schema_1 = require("../plans/schemas/plan.schema");
 const code_evaluation_schema_1 = require("./schemas/code-evaluation.schema");
 const payment_transaction_schema_1 = require("./schemas/payment-transaction.schema");
+const study_cronogram_schema_1 = require("./schemas/study-cronogram.schema");
 const google_calendar_service_1 = require("../google-calendar/google-calendar.service");
 const notifications_service_1 = require("../notifications/notifications.service");
 const in_app_notification_service_1 = require("../notifications/in-app-notification.service");
 const bcrypt = __importStar(require("bcryptjs"));
 let AdminService = class AdminService {
-    constructor(userModel, trackModel, progressModel, sessionModel, subscriptionModel, planModel, codeEvaluationModel, paymentTransactionModel, connection, googleCalendarService, notificationsService, inAppNotificationService) {
+    constructor(userModel, trackModel, progressModel, sessionModel, subscriptionModel, planModel, codeEvaluationModel, paymentTransactionModel, cronogramModel, connection, googleCalendarService, notificationsService, inAppNotificationService) {
         this.userModel = userModel;
         this.trackModel = trackModel;
         this.progressModel = progressModel;
@@ -71,6 +72,7 @@ let AdminService = class AdminService {
         this.planModel = planModel;
         this.codeEvaluationModel = codeEvaluationModel;
         this.paymentTransactionModel = paymentTransactionModel;
+        this.cronogramModel = cronogramModel;
         this.connection = connection;
         this.googleCalendarService = googleCalendarService;
         this.notificationsService = notificationsService;
@@ -904,6 +906,344 @@ let AdminService = class AdminService {
 </table>
 </td></tr></table></body></html>`;
     }
+    async generateCronogram(adminId, data) {
+        const user = await this.userModel.findById(data.userId).lean();
+        if (!user)
+            throw new common_1.NotFoundException('Aluno não encontrado');
+        let trackIds;
+        if (data.trackIds?.length) {
+            trackIds = data.trackIds;
+        }
+        else {
+            const progresses = await this.progressModel
+                .find({ userId: new mongoose_2.Types.ObjectId(data.userId) })
+                .lean();
+            trackIds = progresses.map(p => p.trackId.toString());
+        }
+        if (!trackIds.length) {
+            throw new common_1.BadRequestException('Aluno não possui trilhas matriculadas');
+        }
+        const tracks = await this.trackModel
+            .find({ _id: { $in: trackIds } })
+            .sort({ order: 1 })
+            .lean();
+        const weeklyDays = data.weeklyStudyDays?.length ? data.weeklyStudyDays : [1, 2, 3, 4, 5];
+        const dailyHours = data.dailyStudyHours;
+        const startDate = new Date(data.startDate);
+        const cronogramTracks = [];
+        let currentDate = new Date(startDate);
+        let totalEstimatedHours = 0;
+        for (let i = 0; i < tracks.length; i++) {
+            const track = tracks[i];
+            const hours = track.estimatedHours || 10;
+            totalEstimatedHours += hours;
+            const trackStart = new Date(currentDate);
+            const studyDaysNeeded = Math.ceil(hours / dailyHours);
+            let daysCount = 0;
+            const trackEnd = new Date(currentDate);
+            while (daysCount < studyDaysNeeded) {
+                if (weeklyDays.includes(trackEnd.getDay())) {
+                    daysCount++;
+                    if (daysCount >= studyDaysNeeded)
+                        break;
+                }
+                trackEnd.setDate(trackEnd.getDate() + 1);
+            }
+            const progress = await this.progressModel.findOne({
+                userId: new mongoose_2.Types.ObjectId(data.userId),
+                trackId: track._id,
+            }).lean();
+            cronogramTracks.push({
+                _id: new mongoose_2.Types.ObjectId(),
+                trackId: track._id,
+                order: i,
+                estimatedHours: hours,
+                startDate: trackStart,
+                endDate: trackEnd,
+                status: progress?.status === 'completed'
+                    ? 'completed'
+                    : progress?.status === 'in_progress' ? 'in_progress' : 'pending',
+                progressPercent: progress?.progressPercent || 0,
+                completedLessons: progress?.completedLessons || 0,
+                totalLessons: track.totalLessons || track.lessons?.length || 0,
+                completedAt: progress?.completedAt || undefined,
+                notes: '',
+            });
+            trackEnd.setDate(trackEnd.getDate() + 1);
+            currentDate = new Date(trackEnd);
+        }
+        let totalDays = 0;
+        const counter = new Date(startDate);
+        while (counter <= currentDate) {
+            if (weeklyDays.includes(counter.getDay()))
+                totalDays++;
+            counter.setDate(counter.getDate() + 1);
+        }
+        const milestones = [25, 50, 75, 100].map(pct => {
+            const trackIndex = Math.min(Math.floor((pct / 100) * tracks.length) - (pct < 100 ? 0 : 1), tracks.length - 1);
+            const targetTrack = cronogramTracks[Math.max(0, trackIndex)];
+            return {
+                _id: new mongoose_2.Types.ObjectId(),
+                title: `${pct}% do Cronograma`,
+                description: `Completar ${Math.ceil((pct / 100) * tracks.length)} de ${tracks.length} trilhas`,
+                targetDate: targetTrack?.endDate || currentDate,
+                status: 'pending',
+            };
+        });
+        const endDate = cronogramTracks.length
+            ? cronogramTracks[cronogramTracks.length - 1].endDate
+            : currentDate;
+        const cronogram = await this.cronogramModel.create({
+            userId: new mongoose_2.Types.ObjectId(data.userId),
+            createdBy: new mongoose_2.Types.ObjectId(adminId),
+            name: data.name || `Cronograma de ${user.name}`,
+            description: data.description || '',
+            startDate,
+            endDate,
+            dailyStudyHours: dailyHours,
+            weeklyStudyDays: weeklyDays,
+            totalEstimatedHours,
+            totalStudyDays: totalDays,
+            tracks: cronogramTracks,
+            milestones,
+            status: data.status || 'active',
+            overallProgress: 0,
+            progressHistory: [{ date: new Date(), progress: 0, tracksCompleted: 0 }],
+        });
+        return this.getStudentCronogram(data.userId);
+    }
+    async getStudentCronogram(userId) {
+        const cronogram = await this.cronogramModel
+            .findOne({ userId: new mongoose_2.Types.ObjectId(userId), status: { $in: ['active', 'draft'] } })
+            .populate('createdBy', 'name avatar')
+            .lean();
+        if (!cronogram)
+            return null;
+        const trackIds = cronogram.tracks.map(t => t.trackId);
+        const [tracks, progresses] = await Promise.all([
+            this.trackModel.find({ _id: { $in: trackIds } }).lean(),
+            this.progressModel.find({
+                userId: new mongoose_2.Types.ObjectId(userId),
+                trackId: { $in: trackIds },
+            }).lean(),
+        ]);
+        const trackMap = new Map(tracks.map(t => [t._id.toString(), t]));
+        const progressMap = new Map(progresses.map(p => [p.trackId.toString(), p]));
+        const enrichedTracks = cronogram.tracks.map(ct => {
+            const track = trackMap.get(ct.trackId.toString());
+            const progress = progressMap.get(ct.trackId.toString());
+            const now = new Date();
+            const isOverdue = ct.status !== 'completed' && new Date(ct.endDate) < now;
+            return {
+                ...ct,
+                track: track ? {
+                    _id: track._id,
+                    title: track.title,
+                    description: track.description,
+                    icon: track.icon,
+                    color: track.color,
+                    difficulty: track.difficulty,
+                    estimatedHours: track.estimatedHours,
+                    totalLessons: track.totalLessons || track.lessons?.length || 0,
+                } : null,
+                progressPercent: progress?.progressPercent || ct.progressPercent || 0,
+                completedLessons: progress?.completedLessons || ct.completedLessons || 0,
+                status: progress?.status === 'completed'
+                    ? 'completed'
+                    : isOverdue ? 'overdue'
+                        : progress?.status === 'in_progress' ? 'in_progress' : ct.status,
+            };
+        });
+        const completedTracks = enrichedTracks.filter(t => t.status === 'completed').length;
+        const overallProgress = enrichedTracks.length
+            ? Math.round(enrichedTracks.reduce((sum, t) => sum + (t.progressPercent || 0), 0) / enrichedTracks.length)
+            : 0;
+        const milestones = cronogram.milestones.map(m => {
+            const now = new Date();
+            const isOverdue = m.status !== 'completed' && new Date(m.targetDate) < now;
+            return {
+                ...m,
+                status: m.status === 'completed' ? 'completed' : isOverdue ? 'overdue' : m.status,
+            };
+        });
+        return {
+            ...cronogram,
+            tracks: enrichedTracks,
+            milestones,
+            overallProgress,
+            completedTracks,
+            totalTracks: enrichedTracks.length,
+            overdueTracks: enrichedTracks.filter(t => t.status === 'overdue').length,
+            inProgressTracks: enrichedTracks.filter(t => t.status === 'in_progress').length,
+        };
+    }
+    async getStudentCronogramHistory(userId) {
+        return this.cronogramModel
+            .find({ userId: new mongoose_2.Types.ObjectId(userId) })
+            .sort({ createdAt: -1 })
+            .populate('createdBy', 'name avatar')
+            .lean();
+    }
+    async updateCronogram(cronogramId, data) {
+        const update = {};
+        const allowedFields = ['name', 'description', 'status', 'pauseReason'];
+        for (const key of allowedFields) {
+            if (data[key] !== undefined)
+                update[key] = data[key];
+        }
+        if (data.status === 'paused') {
+            update.pausedAt = new Date();
+        }
+        if (data.status === 'completed') {
+            update.completedAt = new Date();
+        }
+        const cronogram = await this.cronogramModel.findByIdAndUpdate(cronogramId, { $set: update }, { new: true }).exec();
+        if (!cronogram)
+            throw new common_1.NotFoundException('Cronograma não encontrado');
+        return cronogram;
+    }
+    async recalculateCronogram(cronogramId) {
+        const cronogram = await this.cronogramModel.findById(cronogramId).lean();
+        if (!cronogram)
+            throw new common_1.NotFoundException('Cronograma não encontrado');
+        const tracks = await this.trackModel
+            .find({ _id: { $in: cronogram.tracks.map(t => t.trackId) } })
+            .lean();
+        const trackMap = new Map(tracks.map(t => [t._id.toString(), t]));
+        const weeklyDays = cronogram.weeklyStudyDays;
+        const dailyHours = cronogram.dailyStudyHours;
+        let currentDate = new Date(cronogram.startDate);
+        let totalEstimatedHours = 0;
+        const updatedTracks = cronogram.tracks.map((ct, i) => {
+            const track = trackMap.get(ct.trackId.toString());
+            const hours = track?.estimatedHours || ct.estimatedHours || 10;
+            totalEstimatedHours += hours;
+            const trackStart = new Date(currentDate);
+            const studyDaysNeeded = Math.ceil(hours / dailyHours);
+            let daysCount = 0;
+            const trackEnd = new Date(currentDate);
+            while (daysCount < studyDaysNeeded) {
+                if (weeklyDays.includes(trackEnd.getDay())) {
+                    daysCount++;
+                    if (daysCount >= studyDaysNeeded)
+                        break;
+                }
+                trackEnd.setDate(trackEnd.getDate() + 1);
+            }
+            trackEnd.setDate(trackEnd.getDate() + 1);
+            currentDate = new Date(trackEnd);
+            return {
+                ...ct,
+                order: i,
+                estimatedHours: hours,
+                startDate: trackStart,
+                endDate: new Date(trackEnd.getTime() - 86400000),
+                totalLessons: track?.totalLessons || track?.lessons?.length || ct.totalLessons || 0,
+            };
+        });
+        const endDate = updatedTracks.length
+            ? updatedTracks[updatedTracks.length - 1].endDate
+            : currentDate;
+        await this.cronogramModel.findByIdAndUpdate(cronogramId, {
+            $set: {
+                tracks: updatedTracks,
+                endDate,
+                totalEstimatedHours,
+            },
+        });
+        return this.getStudentCronogram(cronogram.userId.toString());
+    }
+    async updateCronogramTrackNotes(cronogramId, trackItemId, notes) {
+        const cronogram = await this.cronogramModel.findOneAndUpdate({ _id: cronogramId, 'tracks._id': new mongoose_2.Types.ObjectId(trackItemId) }, { $set: { 'tracks.$.notes': notes } }, { new: true }).exec();
+        if (!cronogram)
+            throw new common_1.NotFoundException('Cronograma ou trilha não encontrada');
+        return cronogram;
+    }
+    async addCronogramMilestone(cronogramId, milestone) {
+        const cronogram = await this.cronogramModel.findByIdAndUpdate(cronogramId, {
+            $push: {
+                milestones: {
+                    _id: new mongoose_2.Types.ObjectId(),
+                    title: milestone.title,
+                    description: milestone.description || '',
+                    targetDate: new Date(milestone.targetDate),
+                    status: 'pending',
+                },
+            },
+        }, { new: true }).exec();
+        if (!cronogram)
+            throw new common_1.NotFoundException('Cronograma não encontrado');
+        return cronogram;
+    }
+    async completeCronogramMilestone(cronogramId, milestoneId) {
+        const cronogram = await this.cronogramModel.findOneAndUpdate({ _id: cronogramId, 'milestones._id': new mongoose_2.Types.ObjectId(milestoneId) }, { $set: { 'milestones.$.status': 'completed', 'milestones.$.completedAt': new Date() } }, { new: true }).exec();
+        if (!cronogram)
+            throw new common_1.NotFoundException('Milestone não encontrado');
+        return cronogram;
+    }
+    async deleteCronogramMilestone(cronogramId, milestoneId) {
+        const cronogram = await this.cronogramModel.findByIdAndUpdate(cronogramId, { $pull: { milestones: { _id: new mongoose_2.Types.ObjectId(milestoneId) } } }, { new: true }).exec();
+        if (!cronogram)
+            throw new common_1.NotFoundException('Cronograma não encontrado');
+        return cronogram;
+    }
+    async deleteCronogram(cronogramId) {
+        const cronogram = await this.cronogramModel.findByIdAndDelete(cronogramId).exec();
+        if (!cronogram)
+            throw new common_1.NotFoundException('Cronograma não encontrado');
+        return { message: 'Cronograma removido' };
+    }
+    async syncCronogramProgress(cronogramId) {
+        const cronogram = await this.cronogramModel.findById(cronogramId).lean();
+        if (!cronogram)
+            throw new common_1.NotFoundException('Cronograma não encontrado');
+        const progresses = await this.progressModel
+            .find({
+            userId: cronogram.userId,
+            trackId: { $in: cronogram.tracks.map(t => t.trackId) },
+        })
+            .lean();
+        const progressMap = new Map(progresses.map(p => [p.trackId.toString(), p]));
+        const now = new Date();
+        const updatedTracks = cronogram.tracks.map(ct => {
+            const progress = progressMap.get(ct.trackId.toString());
+            const isOverdue = !progress?.completedAt && new Date(ct.endDate) < now;
+            return {
+                ...ct,
+                progressPercent: progress?.progressPercent || 0,
+                completedLessons: progress?.completedLessons || 0,
+                status: progress?.status === 'completed'
+                    ? 'completed'
+                    : isOverdue ? 'overdue'
+                        : progress?.status === 'in_progress' ? 'in_progress' : 'pending',
+                completedAt: progress?.completedAt || undefined,
+            };
+        });
+        const completedTracks = updatedTracks.filter(t => t.status === 'completed').length;
+        const overallProgress = updatedTracks.length
+            ? Math.round(updatedTracks.reduce((sum, t) => sum + t.progressPercent, 0) / updatedTracks.length)
+            : 0;
+        const lastHistory = cronogram.progressHistory?.[cronogram.progressHistory.length - 1];
+        const today = new Date().toDateString();
+        const shouldAddHistory = !lastHistory || new Date(lastHistory.date).toDateString() !== today;
+        const updateOp = {
+            $set: {
+                tracks: updatedTracks,
+                overallProgress,
+            },
+        };
+        if (shouldAddHistory) {
+            updateOp.$push = {
+                progressHistory: { date: now, progress: overallProgress, tracksCompleted: completedTracks },
+            };
+        }
+        if (completedTracks === updatedTracks.length && updatedTracks.length > 0) {
+            updateOp.$set.status = 'completed';
+            updateOp.$set.completedAt = now;
+        }
+        await this.cronogramModel.findByIdAndUpdate(cronogramId, updateOp);
+        return this.getStudentCronogram(cronogram.userId.toString());
+    }
 };
 exports.AdminService = AdminService;
 exports.AdminService = AdminService = __decorate([
@@ -916,8 +1256,10 @@ exports.AdminService = AdminService = __decorate([
     __param(5, (0, mongoose_1.InjectModel)(plan_schema_1.Plan.name)),
     __param(6, (0, mongoose_1.InjectModel)(code_evaluation_schema_1.CodeEvaluation.name)),
     __param(7, (0, mongoose_1.InjectModel)(payment_transaction_schema_1.PaymentTransaction.name)),
-    __param(8, (0, mongoose_1.InjectConnection)()),
+    __param(8, (0, mongoose_1.InjectModel)(study_cronogram_schema_1.StudyCronogram.name)),
+    __param(9, (0, mongoose_1.InjectConnection)()),
     __metadata("design:paramtypes", [mongoose_2.Model,
+        mongoose_2.Model,
         mongoose_2.Model,
         mongoose_2.Model,
         mongoose_2.Model,

@@ -10,6 +10,7 @@ import { Subscription, SubscriptionSchema } from '../plans/schemas/subscription.
 import { Plan, PlanSchema } from '../plans/schemas/plan.schema';
 import { CodeEvaluation, CodeEvaluationSchema } from './schemas/code-evaluation.schema';
 import { PaymentTransaction, PaymentTransactionSchema } from './schemas/payment-transaction.schema';
+import { StudyCronogram, StudyCronogramSchema } from './schemas/study-cronogram.schema';
 import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
@@ -23,6 +24,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
       { name: Plan.name, schema: PlanSchema },
       { name: CodeEvaluation.name, schema: CodeEvaluationSchema },
       { name: PaymentTransaction.name, schema: PaymentTransactionSchema },
+      { name: StudyCronogram.name, schema: StudyCronogramSchema },
     ]),
     NotificationsModule,
   ],

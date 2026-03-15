@@ -99,4 +99,27 @@ export declare class AdminController {
     getStudentPayments(studentId: string): Promise<any>;
     getStudentPaymentSummary(studentId: string): Promise<any>;
     createPaymentTransaction(data: any): Promise<any>;
+    getStudentCronogram(studentId: string): Promise<any>;
+    getStudentCronogramHistory(studentId: string): Promise<any>;
+    generateCronogram(studentId: string, adminId: string, data: {
+        name?: string;
+        description?: string;
+        startDate: string;
+        dailyStudyHours: number;
+        weeklyStudyDays?: number[];
+        trackIds?: string[];
+        status?: string;
+    }): Promise<any>;
+    updateCronogram(cronogramId: string, data: Record<string, any>): Promise<any>;
+    recalculateCronogram(cronogramId: string): Promise<any>;
+    syncCronogramProgress(cronogramId: string): Promise<any>;
+    updateCronogramTrackNotes(cronogramId: string, trackItemId: string, notes: string): Promise<any>;
+    addCronogramMilestone(cronogramId: string, data: {
+        title: string;
+        description?: string;
+        targetDate: string;
+    }): Promise<any>;
+    completeCronogramMilestone(cronogramId: string, milestoneId: string): Promise<any>;
+    deleteCronogramMilestone(cronogramId: string, milestoneId: string): Promise<any>;
+    deleteCronogram(cronogramId: string): Promise<any>;
 }
