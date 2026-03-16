@@ -9,6 +9,7 @@ import { StudyCronogram, StudyCronogramDocument } from '../admin/schemas/study-c
 import { Job, JobDocument } from '../jobs/schemas/job.schema';
 import { Message, MessageDocument } from '../community/schemas/message.schema';
 import { Checkin, CheckinDocument } from '../checkins/schemas/checkin.schema';
+import { toBRDateStr } from '../../common/utils/date.util';
 
 @Injectable()
 export class DashboardService {
@@ -105,12 +106,9 @@ export class DashboardService {
     let nextLesson: any = null;
 
     if (cronogram) {
-      const todayStr = todayStart.toISOString().split('T')[0];
+      const todayStr = toBRDateStr(now);
       todayPlan = (cronogram.dailyPlan || [])
-        .filter(item => {
-          const itemDate = new Date(item.date).toISOString().split('T')[0];
-          return itemDate === todayStr;
-        })
+        .filter(item => toBRDateStr(new Date(item.date)) === todayStr)
         .sort((a, b) => (a.order || 0) - (b.order || 0));
 
       // Cross-check completion from track progress
@@ -149,8 +147,7 @@ export class DashboardService {
       // Find next uncompleted lesson from today or future
       const allPlan = (cronogram.dailyPlan || [])
         .filter(item => {
-          const d = new Date(item.date).toISOString().split('T')[0];
-          return d >= todayStr && !item.completed;
+          return toBRDateStr(new Date(item.date)) >= todayStr && !item.completed;
         })
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime() || (a.order || 0) - (b.order || 0));
 

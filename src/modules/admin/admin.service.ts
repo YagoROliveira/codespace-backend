@@ -13,6 +13,7 @@ import { StudyCronogram, StudyCronogramDocument } from './schemas/study-cronogra
 import { GoogleCalendarService } from '../google-calendar/google-calendar.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { InAppNotificationService } from '../notifications/in-app-notification.service';
+import { getDayOfWeekBR, advanceOneDay } from '../../common/utils/date.util';
 import * as bcrypt from 'bcryptjs';
 
 @Injectable()
@@ -1259,11 +1260,11 @@ export class AdminService {
       let daysCount = 0;
       const trackEnd = new Date(currentDate);
       while (daysCount < studyDaysNeeded) {
-        if (weeklyDays.includes(trackEnd.getDay())) {
+        if (weeklyDays.includes(getDayOfWeekBR(trackEnd))) {
           daysCount++;
           if (daysCount >= studyDaysNeeded) break;
         }
-        trackEnd.setDate(trackEnd.getDate() + 1);
+        advanceOneDay(trackEnd);
       }
 
       // Fetch real progress for this track
@@ -1290,7 +1291,7 @@ export class AdminService {
       });
 
       // Next track starts the day after this one ends
-      trackEnd.setDate(trackEnd.getDate() + 1);
+      advanceOneDay(trackEnd);
       currentDate = new Date(trackEnd);
     }
 
@@ -1298,8 +1299,8 @@ export class AdminService {
     let totalDays = 0;
     const counter = new Date(startDate);
     while (counter <= currentDate) {
-      if (weeklyDays.includes(counter.getDay())) totalDays++;
-      counter.setDate(counter.getDate() + 1);
+      if (weeklyDays.includes(getDayOfWeekBR(counter))) totalDays++;
+      advanceOneDay(counter);
     }
 
     // Auto-generate milestones (25%, 50%, 75%, 100%)
@@ -1345,8 +1346,8 @@ export class AdminService {
     maxDate.setFullYear(maxDate.getFullYear() + 2);
 
     while (lessonIdx < allLessons.length && planDay <= maxDate) {
-      if (!weeklyDays.includes(planDay.getDay())) {
-        planDay.setDate(planDay.getDate() + 1);
+      if (!weeklyDays.includes(getDayOfWeekBR(planDay))) {
+        advanceOneDay(planDay);
         continue;
       }
 
@@ -1375,7 +1376,7 @@ export class AdminService {
         lessonIdx++;
       }
 
-      planDay.setDate(planDay.getDate() + 1);
+      advanceOneDay(planDay);
     }
 
     // Recalculate endDate based on the actual last day in dailyPlan
@@ -1537,14 +1538,14 @@ export class AdminService {
       let daysCount = 0;
       const trackEnd = new Date(currentDate);
       while (daysCount < studyDaysNeeded) {
-        if (weeklyDays.includes(trackEnd.getDay())) {
+        if (weeklyDays.includes(getDayOfWeekBR(trackEnd))) {
           daysCount++;
           if (daysCount >= studyDaysNeeded) break;
         }
-        trackEnd.setDate(trackEnd.getDate() + 1);
+        advanceOneDay(trackEnd);
       }
 
-      trackEnd.setDate(trackEnd.getDate() + 1);
+      advanceOneDay(trackEnd);
       currentDate = new Date(trackEnd);
 
       return {
@@ -1583,8 +1584,8 @@ export class AdminService {
     maxDate.setFullYear(maxDate.getFullYear() + 2);
 
     while (lessonIdx < allLessons.length && planDay <= maxDate) {
-      if (!weeklyDays.includes(planDay.getDay())) {
-        planDay.setDate(planDay.getDate() + 1);
+      if (!weeklyDays.includes(getDayOfWeekBR(planDay))) {
+        advanceOneDay(planDay);
         continue;
       }
 
@@ -1614,7 +1615,7 @@ export class AdminService {
         lessonIdx++;
       }
 
-      planDay.setDate(planDay.getDate() + 1);
+      advanceOneDay(planDay);
     }
 
     const actualEndDate = dailyPlan.length

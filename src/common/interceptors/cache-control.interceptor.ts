@@ -30,7 +30,7 @@ export const NoCache = () => CacheTTL(0);                         // no cache
 
 @Injectable()
 export class CacheControlInterceptor implements NestInterceptor {
-  constructor(private reflector: Reflector) {}
+  constructor(private reflector: Reflector) { }
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     return next.handle().pipe(

@@ -2,7 +2,9 @@
   "version": 2,
   "installCommand": "pnpm install",
   "buildCommand": "pnpm run vercel-build",
-  "regions": ["gru1"],
+  "regions": [
+    "gru1"
+  ],
   "crons": [
     {
       "path": "/api/health",

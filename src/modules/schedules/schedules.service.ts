@@ -18,6 +18,7 @@ import { Session, SessionDocument } from '../sessions/schemas/session.schema';
 import { StudyCronogram, StudyCronogramDocument } from '../admin/schemas/study-cronogram.schema';
 import { Track, TrackDocument } from '../tracks/schemas/track.schema';
 import { UserTrackProgress, UserTrackProgressDocument } from '../tracks/schemas/user-track-progress.schema';
+import { toBRDateStr } from '../../common/utils/date.util';
 
 @Injectable()
 export class SchedulesService {
@@ -360,10 +361,7 @@ export class SchedulesService {
       : 0;
 
     // ── Build today's study plan from dailyPlan ──
-    const todayStart = new Date(now);
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date(now);
-    todayEnd.setHours(23, 59, 59, 999);
+    const todayStr = toBRDateStr(now);
 
     // Sync dailyPlan completion status with real lesson progress
     const dailyPlan = (cronogram.dailyPlan || []).map(item => {
@@ -375,10 +373,7 @@ export class SchedulesService {
     });
 
     const todayPlan = dailyPlan
-      .filter(item => {
-        const d = new Date(item.date);
-        return d >= todayStart && d <= todayEnd;
-      })
+      .filter(item => toBRDateStr(new Date(item.date)) === todayStr)
       .sort((a, b) => (a.order || 0) - (b.order || 0))
       .map(item => {
         const track = trackMap.get(item.trackId?.toString());
@@ -394,25 +389,27 @@ export class SchedulesService {
       });
 
     // Week plan — use provided range or default to current week
-    let wkStart: Date;
-    let wkEnd: Date;
+    let wkStartStr: string;
+    let wkEndStr: string;
     if (weekStart && weekEnd) {
-      wkStart = new Date(weekStart);
-      wkStart.setHours(0, 0, 0, 0);
-      wkEnd = new Date(weekEnd);
-      wkEnd.setHours(23, 59, 59, 999);
+      wkStartStr = toBRDateStr(new Date(weekStart));
+      wkEndStr = toBRDateStr(new Date(weekEnd));
     } else {
-      wkStart = new Date(todayStart);
-      wkStart.setDate(wkStart.getDate() - wkStart.getDay());
-      wkEnd = new Date(wkStart);
-      wkEnd.setDate(wkEnd.getDate() + 6);
-      wkEnd.setHours(23, 59, 59, 999);
+      // Compute start-of-week (Sunday) and end-of-week (Saturday) in BRT
+      const todayDate = new Date(todayStr + 'T12:00:00Z'); // noon-UTC on BRT date
+      const dow = todayDate.getUTCDay(); // 0-Sun .. 6-Sat
+      const sunday = new Date(todayDate);
+      sunday.setUTCDate(sunday.getUTCDate() - dow);
+      const saturday = new Date(sunday);
+      saturday.setUTCDate(saturday.getUTCDate() + 6);
+      wkStartStr = sunday.toISOString().split('T')[0];
+      wkEndStr = saturday.toISOString().split('T')[0];
     }
 
     const weekPlan = dailyPlan
       .filter(item => {
-        const d = new Date(item.date);
-        return d >= wkStart && d <= wkEnd;
+        const itemStr = toBRDateStr(new Date(item.date));
+        return itemStr >= wkStartStr && itemStr <= wkEndStr;
       })
       .sort((a, b) => {
         const da = new Date(a.date).getTime() - new Date(b.date).getTime();
