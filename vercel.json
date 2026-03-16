@@ -2,6 +2,13 @@
   "version": 2,
   "installCommand": "pnpm install",
   "buildCommand": "pnpm run vercel-build",
+  "regions": ["gru1"],
+  "crons": [
+    {
+      "path": "/api/health",
+      "schedule": "*/5 * * * *"
+    }
+  ],
   "builds": [
     {
       "src": "dist/main.js",
@@ -9,11 +16,33 @@
       "config": {
         "includeFiles": [
           "dist/**"
-        ]
+        ],
+        "maxLambdaSize": "50mb"
       }
     }
   ],
   "routes": [
+    {
+      "src": "/api/health",
+      "dest": "dist/main.js",
+      "headers": {
+        "Cache-Control": "no-cache"
+      }
+    },
+    {
+      "src": "/api/(tracks|challenges|resources|interviews/questions)$",
+      "dest": "dist/main.js",
+      "headers": {
+        "Cache-Control": "public, max-age=300, s-maxage=600, stale-while-revalidate=3600"
+      }
+    },
+    {
+      "src": "/api/(jobs|community/.*)$",
+      "dest": "dist/main.js",
+      "headers": {
+        "Cache-Control": "public, max-age=60, s-maxage=120, stale-while-revalidate=300"
+      }
+    },
     {
       "src": "/(.*)",
       "dest": "dist/main.js"

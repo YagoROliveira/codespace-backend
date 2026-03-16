@@ -3,6 +3,7 @@ import { ChallengesService } from './challenges.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
+import { CacheStatic } from '../../common/interceptors/cache-control.interceptor';
 
 @Controller('challenges')
 export class ChallengesController {
@@ -10,6 +11,7 @@ export class ChallengesController {
 
   @Public()
   @Get()
+  @CacheStatic()
   async findAll() {
     return this.challengesService.findAll();
   }

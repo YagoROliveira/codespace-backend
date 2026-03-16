@@ -25,6 +25,7 @@ import { IdeModule } from './modules/ide/ide.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { SchedulesModule } from './modules/schedules/schedules.module';
 import { LabModule } from './modules/lab/lab.module';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -37,6 +38,15 @@ import { LabModule } from './modules/lab/lab.module';
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         uri: configService.get<string>('MONGODB_URI'),
+        // ── Serverless optimizations ──
+        maxPoolSize: 5,                    // Limit connections for serverless
+        minPoolSize: 1,                    // Keep at least 1 alive
+        serverSelectionTimeoutMS: 5000,    // Fail fast on connection issues
+        socketTimeoutMS: 45000,            // Close sockets after 45s of inactivity
+        bufferCommands: false,             // Don't buffer when disconnected
+        heartbeatFrequencyMS: 30000,       // Less frequent heartbeats
+        maxIdleTimeMS: 30000,              // Close idle connections after 30s
+        connectTimeoutMS: 5000,            // Connection timeout
       }),
       inject: [ConfigService],
     }),
@@ -63,6 +73,7 @@ import { LabModule } from './modules/lab/lab.module';
     UploadsModule,
     SchedulesModule,
     LabModule,
+    HealthModule,
   ],
 })
 export class AppModule { }

@@ -3,6 +3,7 @@ import { TracksService } from './tracks.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
+import { CacheStatic } from '../../common/interceptors/cache-control.interceptor';
 
 @Controller('tracks')
 export class TracksController {
@@ -10,6 +11,7 @@ export class TracksController {
 
   @Public()
   @Get()
+  @CacheStatic()
   async findAll() {
     return this.tracksService.findAll();
   }
@@ -31,6 +33,7 @@ export class TracksController {
 
   @Public()
   @Get(':id')
+  @CacheStatic()
   async findById(@Param('id') id: string) {
     return this.tracksService.findById(id);
   }

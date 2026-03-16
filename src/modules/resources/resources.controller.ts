@@ -3,6 +3,7 @@ import { ResourcesService } from './resources.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
+import { CacheStatic } from '../../common/interceptors/cache-control.interceptor';
 
 @Controller('resources')
 export class ResourcesController {
@@ -10,6 +11,7 @@ export class ResourcesController {
 
   @Public()
   @Get()
+  @CacheStatic()
   async findAll(
     @Query('type') type?: string,
     @Query('category') category?: string,

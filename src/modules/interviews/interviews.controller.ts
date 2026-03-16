@@ -2,6 +2,7 @@ import { Controller, Get, Post, Param, Body, Query, UseGuards } from '@nestjs/co
 import { InterviewsService } from './interviews.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { CacheStatic } from '../../common/interceptors/cache-control.interceptor';
 
 @Controller('interviews')
 export class InterviewsController {
@@ -9,6 +10,7 @@ export class InterviewsController {
 
   @UseGuards(JwtAuthGuard)
   @Get('questions')
+  @CacheStatic()
   async getQuestions(@Query('type') type?: string, @Query('level') level?: string) {
     return this.interviewsService.getQuestions(type, level);
   }

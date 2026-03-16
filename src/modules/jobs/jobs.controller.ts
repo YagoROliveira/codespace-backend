@@ -3,6 +3,7 @@ import { JobsService } from './jobs.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
+import { CacheSemiStatic } from '../../common/interceptors/cache-control.interceptor';
 
 @Controller('jobs')
 export class JobsController {
@@ -10,12 +11,14 @@ export class JobsController {
 
   @Public()
   @Get()
+  @CacheSemiStatic()
   async findAll(@Query('type') type?: string, @Query('level') level?: string, @Query('tag') tag?: string) {
     return this.jobsService.findAll({ type, level, tag });
   }
 
   @Public()
   @Get('stats')
+  @CacheSemiStatic()
   async getStats() {
     return this.jobsService.getStats();
   }
