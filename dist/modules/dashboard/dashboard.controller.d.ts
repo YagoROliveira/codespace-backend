@@ -5,6 +5,7 @@ export declare class DashboardController {
     getDashboard(userId: string): Promise<{
         user: {
             name: string;
+            avatar: string;
             plan: string;
             streakDays: number;
             totalHours: number;
@@ -15,6 +16,7 @@ export declare class DashboardController {
             totalHours: number;
             totalSessions: number;
             streakDays: number;
+            totalLessonsCompleted: number;
         };
         activeTracks: {
             track: import("mongoose").Types.ObjectId;
@@ -27,5 +29,39 @@ export declare class DashboardController {
         }> & {
             __v: number;
         })[];
+        cronogram: any;
+        todayPlan: any[];
+        nextLesson: any;
+        recentJobs: {
+            _id: any;
+            title: string;
+            company: string;
+            companyLogo: string;
+            type: string;
+            level: string;
+            location: string;
+            salaryRange: string;
+            tags: string[];
+            isFeatured: boolean;
+            isExclusive: boolean;
+        }[];
+        jobsTotal: number;
+        recentCommunity: {
+            _id: any;
+            content: string;
+            user: import("mongoose").Types.ObjectId;
+            channel: import("mongoose").Types.ObjectId;
+            createdAt: any;
+        }[];
+        todayCheckin: {
+            mood: string;
+            hoursStudied: number;
+            productivityScore: number;
+        };
+        weeklyStudy: {
+            totalHours: number;
+            avgProductivity: number;
+            checkinsDone: number;
+        };
     }>;
 }

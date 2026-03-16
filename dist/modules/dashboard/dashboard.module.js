@@ -15,6 +15,10 @@ const user_schema_1 = require("../users/schemas/user.schema");
 const user_track_progress_schema_1 = require("../tracks/schemas/user-track-progress.schema");
 const session_schema_1 = require("../sessions/schemas/session.schema");
 const track_schema_1 = require("../tracks/schemas/track.schema");
+const study_cronogram_schema_1 = require("../admin/schemas/study-cronogram.schema");
+const job_schema_1 = require("../jobs/schemas/job.schema");
+const message_schema_1 = require("../community/schemas/message.schema");
+const checkin_schema_1 = require("../checkins/schemas/checkin.schema");
 let DashboardModule = class DashboardModule {
 };
 exports.DashboardModule = DashboardModule;
@@ -26,6 +30,10 @@ exports.DashboardModule = DashboardModule = __decorate([
                 { name: user_track_progress_schema_1.UserTrackProgress.name, schema: user_track_progress_schema_1.UserTrackProgressSchema },
                 { name: session_schema_1.Session.name, schema: session_schema_1.SessionSchema },
                 { name: track_schema_1.Track.name, schema: track_schema_1.TrackSchema },
+                { name: study_cronogram_schema_1.StudyCronogram.name, schema: study_cronogram_schema_1.StudyCronogramSchema },
+                { name: job_schema_1.Job.name, schema: job_schema_1.JobSchema },
+                { name: message_schema_1.Message.name, schema: message_schema_1.MessageSchema },
+                { name: checkin_schema_1.Checkin.name, schema: checkin_schema_1.CheckinSchema },
             ]),
         ],
         controllers: [dashboard_controller_1.DashboardController],
