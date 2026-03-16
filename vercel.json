@@ -26,7 +26,8 @@
   "functions": {
     "dist/main.js": {
       "memory": 1024,
-      "maxDuration": 30
+      "maxDuration": 30,
+      "regions": ["gru1"]
     }
   },
   "routes": [
