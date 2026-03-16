@@ -30,7 +30,7 @@ export class RequestTimingMiddleware implements NestMiddleware {
         // In dev, log everything with color coding
         const logFn = duration > this.SLOW_THRESHOLD_MS ? this.logger.warn.bind(this.logger)
           : duration > 200 ? this.logger.log.bind(this.logger)
-          : this.logger.debug.bind(this.logger);
+            : this.logger.debug.bind(this.logger);
         logFn(`${method} ${originalUrl} ${statusCode} — ${duration}ms`);
       }
     });

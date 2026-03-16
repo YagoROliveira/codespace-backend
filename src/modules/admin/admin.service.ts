@@ -563,9 +563,11 @@ export class AdminService {
     if (filters?.mentorId) query.mentorId = new Types.ObjectId(filters.mentorId);
 
     return this.sessionModel.find(query)
+      .select('userId mentorId title description scheduledAt durationMinutes status meetingUrl recordingUrl notes topics type studentNoShow noShowMarkedAt lastNotifiedAt notificationCount calendarEventId createdAt updatedAt')
       .populate('userId', 'name email avatar plan')
       .populate('mentorId', 'name email avatar')
       .sort({ scheduledAt: -1 })
+      .limit(200)
       .lean();
   }
 
@@ -797,7 +799,10 @@ export class AdminService {
 
   // ===================== TRACKS =====================
   async getAllTracks(): Promise<any> {
-    const tracks = await this.trackModel.find().sort({ order: 1 }).lean();
+    const tracks = await this.trackModel.find()
+      .select('title description icon color tags difficulty estimatedHours requiredPlans isPublished order lessons._id lessons.title lessons.order lessons.durationMinutes createdAt updatedAt')
+      .sort({ order: 1 })
+      .lean();
 
     if (tracks.length === 0) return [];
 
@@ -910,8 +915,9 @@ export class AdminService {
 
     return this.subscriptionModel.find(query)
       .populate('userId', 'name email avatar plan')
-      .populate('planId')
+      .populate('planId', 'name price billingCycle')
       .sort({ createdAt: -1 })
+      .limit(200)
       .lean();
   }
 

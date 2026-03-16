@@ -11,4 +11,4 @@ import { UserCacheService } from './user-cache.service';
   providers: [UserCacheService],
   exports: [UserCacheService],
 })
-export class UserCacheModule {}
+export class UserCacheModule { }
