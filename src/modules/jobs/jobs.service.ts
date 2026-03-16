@@ -15,7 +15,9 @@ export class JobsService {
     if (filters?.type) query.type = filters.type;
     if (filters?.level) query.level = filters.level;
     if (filters?.tag) query.tags = { $in: [filters.tag] };
-    return this.jobModel.find(query).sort({ isFeatured: -1, createdAt: -1 }).lean();
+    return this.jobModel.find(query)
+      .select('title company companyLogo type level location salaryRange tags isFeatured isExclusive createdAt')
+      .sort({ isFeatured: -1, createdAt: -1 }).lean();
   }
 
   async findById(id: string): Promise<any> {
@@ -44,9 +46,13 @@ export class JobsService {
   }
 
   async getMyApplications(userId: string): Promise<any[]> {
-    const apps = await this.applicationModel.find({ userId: new Types.ObjectId(userId) }).sort({ appliedAt: -1 }).lean();
+    const apps = await this.applicationModel.find({ userId: new Types.ObjectId(userId) })
+      .select('jobId status appliedAt coverLetter')
+      .sort({ appliedAt: -1 }).lean();
     const jobIds = apps.map(a => a.jobId);
-    const jobs = await this.jobModel.find({ _id: { $in: jobIds } }).lean();
+    const jobs = await this.jobModel.find({ _id: { $in: jobIds } })
+      .select('title company companyLogo type level location salaryRange tags isFeatured isExclusive')
+      .lean();
     const jobMap = new Map(jobs.map(j => [j._id.toString(), j]));
     return apps.map(a => ({ ...a, job: jobMap.get(a.jobId.toString()) }));
   }

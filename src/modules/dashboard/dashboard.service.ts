@@ -45,10 +45,13 @@ export class DashboardService {
       todayCheckin,
       weekCheckins,
     ] = await Promise.all([
-      this.userModel.findById(userId).lean().exec(),
+      this.userModel.findById(userId)
+        .select('name avatar plan streakDays totalHours')
+        .lean().exec(),
       this.progressModel
         .find({ userId: userObjectId, status: 'in_progress' })
-        .populate('trackId')
+        .select('trackId progressPercent completedLessons startedAt lessonProgress')
+        .populate('trackId', 'title slug lessons._id lessons.title lessons.durationMinutes')
         .lean().exec(),
       this.sessionModel
         .find({
@@ -56,6 +59,7 @@ export class DashboardService {
           scheduledAt: { $gte: now },
           status: 'scheduled',
         })
+        .select('scheduledAt status mentorId topic')
         .sort({ scheduledAt: 1 })
         .limit(3)
         .populate('mentorId', 'name avatar')
@@ -71,13 +75,16 @@ export class DashboardService {
       this.cronogramModel.findOne({
         userId: userObjectId,
         status: { $in: ['active', 'draft'] },
-      }).lean().exec(),
+      }).select('name dailyPlan dailyStudyHours weeklyStudyDays tracks')
+        .lean().exec(),
       this.jobModel.find({ isActive: true })
+        .select('title company companyLogo type level location salaryRange tags isFeatured isExclusive')
         .sort({ createdAt: -1 })
         .limit(5)
         .lean().exec(),
       this.jobModel.countDocuments({ isActive: true }),
       this.messageModel.find()
+        .select('content userId channelId createdAt')
         .sort({ createdAt: -1 })
         .limit(5)
         .populate('userId', 'name avatar role')
@@ -86,11 +93,13 @@ export class DashboardService {
       this.checkinModel.findOne({
         userId: userObjectId,
         date: todayStart.toISOString().split('T')[0],
-      }).lean().exec(),
+      }).select('mood hoursStudied productivityScore')
+        .lean().exec(),
       this.checkinModel.find({
         userId: userObjectId,
         createdAt: { $gte: new Date(now.getTime() - 7 * 86400000) },
-      }).sort({ createdAt: -1 }).lean().exec(),
+      }).select('hoursStudied productivityScore createdAt')
+        .sort({ createdAt: -1 }).lean().exec(),
     ]);
 
     const inProgressTracks = activeTracks.map((progress) => ({

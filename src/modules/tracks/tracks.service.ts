@@ -16,7 +16,9 @@ export class TracksService {
   ) { }
 
   async findAll(): Promise<any[]> {
-    return this.trackModel.find({ isPublished: true }).sort({ order: 1 }).lean().exec();
+    return this.trackModel.find({ isPublished: true })
+      .select('title slug description icon color tags difficulty totalLessons estimatedHours requiredPlans order isPublished')
+      .sort({ order: 1 }).lean().exec();
   }
 
   async findById(id: string): Promise<any> {
@@ -53,8 +55,12 @@ export class TracksService {
   }
 
   async getUserTracks(userId: string): Promise<any[]> {
-    const tracks = await this.trackModel.find({ isPublished: true }).sort({ order: 1 }).lean().exec();
-    const progress = await this.progressModel.find({ userId: new Types.ObjectId(userId) }).lean().exec();
+    const tracks = await this.trackModel.find({ isPublished: true })
+      .select('title slug description icon color tags difficulty totalLessons estimatedHours requiredPlans order isPublished')
+      .sort({ order: 1 }).lean().exec();
+    const progress = await this.progressModel.find({ userId: new Types.ObjectId(userId) })
+      .select('trackId status progressPercent completedLessons startedAt')
+      .lean().exec();
 
     const progressMap = new Map(
       progress.map((p) => [p.trackId.toString(), p]),

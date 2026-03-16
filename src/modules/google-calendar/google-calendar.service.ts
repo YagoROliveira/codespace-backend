@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { google, calendar_v3 } from 'googleapis';
+import * as crypto from 'crypto';
 
 export interface CalendarEventInput {
   summary: string;
@@ -16,11 +16,18 @@ export interface CalendarEventResult {
   htmlLink: string;
 }
 
+const CALENDAR_API = 'https://www.googleapis.com/calendar/v3';
+const TOKEN_URL = 'https://oauth2.googleapis.com/token';
+const SCOPE = 'https://www.googleapis.com/auth/calendar';
+
 @Injectable()
 export class GoogleCalendarService {
   private readonly logger = new Logger(GoogleCalendarService.name);
-  private calendar: calendar_v3.Calendar | null = null;
+  private clientEmail: string | null = null;
+  private privateKey: string | null = null;
   private calendarId: string;
+  private accessToken: string | null = null;
+  private tokenExpiry = 0;
 
   constructor(private configService: ConfigService) {
     this.calendarId = this.configService.get<string>('GOOGLE_CALENDAR_ID') || 'primary';
@@ -38,26 +45,93 @@ export class GoogleCalendarService {
       return;
     }
 
-    try {
-      const auth = new google.auth.JWT({
-        email: clientEmail,
-        key: privateKey.replace(/\\n/g, '\n'),
-        scopes: ['https://www.googleapis.com/auth/calendar'],
-      });
-
-      this.calendar = google.calendar({ version: 'v3', auth });
-      this.logger.log('Google Calendar client initialized');
-    } catch (err) {
-      this.logger.error('Failed to initialize Google Calendar client', err);
-    }
+    this.clientEmail = clientEmail;
+    this.privateKey = privateKey.replace(/\\n/g, '\n');
+    this.logger.log('Google Calendar client initialized (lightweight)');
   }
 
   isConfigured(): boolean {
-    return this.calendar !== null;
+    return this.clientEmail !== null && this.privateKey !== null;
+  }
+
+  /** Create a signed JWT for Google service account auth */
+  private createJwt(): string {
+    const now = Math.floor(Date.now() / 1000);
+    const header = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString('base64url');
+    const payload = Buffer.from(JSON.stringify({
+      iss: this.clientEmail,
+      scope: SCOPE,
+      aud: TOKEN_URL,
+      iat: now,
+      exp: now + 3600,
+    })).toString('base64url');
+
+    const signInput = `${header}.${payload}`;
+    const sign = crypto.createSign('RSA-SHA256');
+    sign.update(signInput);
+    const signature = sign.sign(this.privateKey!, 'base64url');
+
+    return `${signInput}.${signature}`;
+  }
+
+  /** Get a valid access token, refreshing if expired */
+  private async getAccessToken(): Promise<string> {
+    if (this.accessToken && Date.now() < this.tokenExpiry) {
+      return this.accessToken;
+    }
+
+    const jwt = this.createJwt();
+    const res = await fetch(TOKEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}`,
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Token exchange failed: ${res.status} ${err}`);
+    }
+
+    const data = await res.json() as { access_token: string; expires_in: number };
+    this.accessToken = data.access_token;
+    this.tokenExpiry = Date.now() + (data.expires_in - 60) * 1000; // refresh 60s early
+    return this.accessToken;
+  }
+
+  /** Make an authenticated request to Google Calendar API */
+  private async calendarFetch(
+    path: string,
+    method: string,
+    body?: Record<string, any>,
+    params?: Record<string, string>,
+  ): Promise<any> {
+    const token = await this.getAccessToken();
+    const url = new URL(`${CALENDAR_API}${path}`);
+    if (params) {
+      for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
+    }
+
+    const res = await fetch(url.toString(), {
+      method,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+
+    if (method === 'DELETE' && res.status === 204) return null;
+
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Calendar API ${method} ${path} failed: ${res.status} ${err}`);
+    }
+
+    return res.json();
   }
 
   async createEvent(input: CalendarEventInput): Promise<CalendarEventResult | null> {
-    if (!this.calendar) {
+    if (!this.isConfigured()) {
       this.logger.warn('Google Calendar not configured, skipping event creation');
       return null;
     }
@@ -66,11 +140,10 @@ export class GoogleCalendarService {
     const endDate = new Date(startDate.getTime() + input.durationMinutes * 60000);
 
     try {
-      const res = await this.calendar.events.insert({
-        calendarId: this.calendarId,
-        conferenceDataVersion: 1,
-        sendUpdates: 'all', // Send email invites to all attendees
-        requestBody: {
+      const event = await this.calendarFetch(
+        `/calendars/${encodeURIComponent(this.calendarId)}/events`,
+        'POST',
+        {
           summary: input.summary,
           description: input.description || '',
           start: {
@@ -99,11 +172,11 @@ export class GoogleCalendarService {
             ],
           },
         },
-      });
+        { conferenceDataVersion: '1', sendUpdates: 'all' },
+      );
 
-      const event = res.data;
       const meetingUrl =
-        event.conferenceData?.entryPoints?.find((ep) => ep.entryPointType === 'video')?.uri || '';
+        event.conferenceData?.entryPoints?.find((ep: any) => ep.entryPointType === 'video')?.uri || '';
 
       this.logger.log(`Created calendar event: ${event.id} with Meet: ${meetingUrl}`);
 
@@ -122,7 +195,7 @@ export class GoogleCalendarService {
     eventId: string,
     input: Partial<CalendarEventInput>,
   ): Promise<CalendarEventResult | null> {
-    if (!this.calendar) return null;
+    if (!this.isConfigured()) return null;
 
     try {
       const body: any = {};
@@ -146,16 +219,15 @@ export class GoogleCalendarService {
         }));
       }
 
-      const res = await this.calendar.events.patch({
-        calendarId: this.calendarId,
-        eventId,
-        sendUpdates: 'all',
-        requestBody: body,
-      });
+      const event = await this.calendarFetch(
+        `/calendars/${encodeURIComponent(this.calendarId)}/events/${encodeURIComponent(eventId)}`,
+        'PATCH',
+        body,
+        { sendUpdates: 'all' },
+      );
 
-      const event = res.data;
       const meetingUrl =
-        event.conferenceData?.entryPoints?.find((ep) => ep.entryPointType === 'video')?.uri || '';
+        event.conferenceData?.entryPoints?.find((ep: any) => ep.entryPointType === 'video')?.uri || '';
 
       this.logger.log(`Updated calendar event: ${eventId}`);
 
@@ -171,14 +243,15 @@ export class GoogleCalendarService {
   }
 
   async deleteEvent(eventId: string): Promise<boolean> {
-    if (!this.calendar) return false;
+    if (!this.isConfigured()) return false;
 
     try {
-      await this.calendar.events.delete({
-        calendarId: this.calendarId,
-        eventId,
-        sendUpdates: 'all', // Notify attendees of cancellation
-      });
+      await this.calendarFetch(
+        `/calendars/${encodeURIComponent(this.calendarId)}/events/${encodeURIComponent(eventId)}`,
+        'DELETE',
+        undefined,
+        { sendUpdates: 'all' },
+      );
       this.logger.log(`Deleted calendar event: ${eventId}`);
       return true;
     } catch (err) {

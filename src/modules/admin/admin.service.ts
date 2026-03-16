@@ -206,9 +206,12 @@ export class AdminService {
     const studentIds = students.map(s => s._id);
 
     const [progressDocs, subscriptionDocs] = await Promise.all([
-      this.progressModel.find({ userId: { $in: studentIds } }).lean(),
+      this.progressModel.find({ userId: { $in: studentIds } })
+        .select('userId trackId status')
+        .lean(),
       this.subscriptionModel.find({ userId: { $in: studentIds }, status: 'active' })
-        .populate('planId').lean(),
+        .populate('planId', 'name slug price duration')
+        .lean(),
     ]);
 
     // Build lookup maps
@@ -243,11 +246,16 @@ export class AdminService {
     if (!student) throw new NotFoundException('Aluno não encontrado');
 
     const [progress, sessions, subscription] = await Promise.all([
-      this.progressModel.find({ userId: student._id }).populate('trackId').lean(),
+      this.progressModel.find({ userId: student._id })
+        .populate('trackId', 'title slug icon difficulty totalLessons')
+        .lean(),
       this.sessionModel.find({ userId: student._id })
+        .select('scheduledAt status mentorId topic notes rating')
         .populate('mentorId', 'name email avatar')
         .sort({ scheduledAt: -1 }).lean(),
-      this.subscriptionModel.findOne({ userId: student._id, status: 'active' }).populate('planId').lean(),
+      this.subscriptionModel.findOne({ userId: student._id, status: 'active' })
+        .populate('planId', 'name slug price duration')
+        .lean(),
     ]);
 
     return {

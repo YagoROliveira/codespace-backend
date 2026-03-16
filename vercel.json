@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "installCommand": "pnpm install",
+  "installCommand": "pnpm install --prod=false",
   "buildCommand": "pnpm run vercel-build",
   "regions": [
     "gru1"
@@ -23,6 +23,12 @@
       }
     }
   ],
+  "functions": {
+    "dist/main.js": {
+      "memory": 1024,
+      "maxDuration": 30
+    }
+  },
   "routes": [
     {
       "src": "/api/health",
@@ -32,7 +38,7 @@
       }
     },
     {
-      "src": "/api/(tracks|challenges|resources|interviews/questions)$",
+      "src": "/api/(tracks|challenges|resources|interviews/questions|plans)$",
       "dest": "dist/main.js",
       "headers": {
         "Cache-Control": "public, max-age=300, s-maxage=600, stale-while-revalidate=3600"
@@ -43,6 +49,13 @@
       "dest": "dist/main.js",
       "headers": {
         "Cache-Control": "public, max-age=60, s-maxage=120, stale-while-revalidate=300"
+      }
+    },
+    {
+      "src": "/api/dashboard",
+      "dest": "dist/main.js",
+      "headers": {
+        "Cache-Control": "private, max-age=30, stale-while-revalidate=60"
       }
     },
     {
