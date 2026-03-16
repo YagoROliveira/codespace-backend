@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Delete,
   Param,
   Body,
@@ -76,8 +77,20 @@ export class SchedulesController {
   // ─── STUDY CRONOGRAM (student) ───
 
   @Get('my-cronogram')
-  async getMyStudyCronogram(@CurrentUser('_id') userId: string) {
-    return this.schedulesService.getMyStudyCronogram(userId);
+  async getMyStudyCronogram(
+    @CurrentUser('_id') userId: string,
+    @Query('weekStart') weekStart?: string,
+    @Query('weekEnd') weekEnd?: string,
+  ) {
+    return this.schedulesService.getMyStudyCronogram(userId, weekStart, weekEnd);
+  }
+
+  @Patch('my-cronogram/move-item')
+  async moveDailyPlanItem(
+    @CurrentUser('_id') userId: string,
+    @Body() body: { itemId: string; newDate: string },
+  ) {
+    return this.schedulesService.moveDailyPlanItem(userId, body.itemId, body.newDate);
   }
 
   @Get('student/:userId')

@@ -277,7 +277,23 @@ export class SchedulesService {
 
   // ─── STUDY CRONOGRAM (student-facing) ───
 
-  async getMyStudyCronogram(userId: string): Promise<any> {
+  async moveDailyPlanItem(userId: string, itemId: string, newDate: string): Promise<any> {
+    const cronogram = await this.cronogramModel.findOne({
+      userId: new Types.ObjectId(userId),
+      status: { $in: ['active', 'draft', 'paused'] },
+      'dailyPlan._id': new Types.ObjectId(itemId),
+    });
+    if (!cronogram) throw new NotFoundException('Cronograma ou item não encontrado');
+
+    const item = cronogram.dailyPlan.find(i => (i as any)._id.toString() === itemId);
+    if (!item) throw new NotFoundException('Item não encontrado no plano diário');
+
+    (item as any).date = new Date(newDate);
+    await cronogram.save();
+    return { success: true };
+  }
+
+  async getMyStudyCronogram(userId: string, weekStart?: string, weekEnd?: string): Promise<any> {
     const cronogram = await this.cronogramModel
       .findOne({
         userId: new Types.ObjectId(userId),
@@ -377,17 +393,26 @@ export class SchedulesService {
         };
       });
 
-    // Week plan for the current week
-    const weekStart = new Date(todayStart);
-    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekEnd.getDate() + 6);
-    weekEnd.setHours(23, 59, 59, 999);
+    // Week plan — use provided range or default to current week
+    let wkStart: Date;
+    let wkEnd: Date;
+    if (weekStart && weekEnd) {
+      wkStart = new Date(weekStart);
+      wkStart.setHours(0, 0, 0, 0);
+      wkEnd = new Date(weekEnd);
+      wkEnd.setHours(23, 59, 59, 999);
+    } else {
+      wkStart = new Date(todayStart);
+      wkStart.setDate(wkStart.getDate() - wkStart.getDay());
+      wkEnd = new Date(wkStart);
+      wkEnd.setDate(wkEnd.getDate() + 6);
+      wkEnd.setHours(23, 59, 59, 999);
+    }
 
     const weekPlan = dailyPlan
       .filter(item => {
         const d = new Date(item.date);
-        return d >= weekStart && d <= weekEnd;
+        return d >= wkStart && d <= wkEnd;
       })
       .sort((a, b) => {
         const da = new Date(a.date).getTime() - new Date(b.date).getTime();
