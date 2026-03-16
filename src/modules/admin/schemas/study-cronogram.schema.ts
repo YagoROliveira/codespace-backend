@@ -48,6 +48,48 @@ export class CronogramTrackItem {
 
 export const CronogramTrackItemSchema = SchemaFactory.createForClass(CronogramTrackItem);
 
+// ─── Daily study item ───
+@Schema({ _id: false })
+export class CronogramDailyItem {
+  @Prop({ type: Types.ObjectId, default: () => new Types.ObjectId() })
+  _id: Types.ObjectId;
+
+  @Prop({ required: true })
+  date: Date;
+
+  @Prop({ type: Types.ObjectId, ref: 'Track', required: true })
+  trackId: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId })
+  lessonId: Types.ObjectId;
+
+  @Prop({ required: true })
+  title: string;
+
+  @Prop({ default: '' })
+  description: string;
+
+  @Prop({ enum: ['lesson', 'review', 'practice', 'project', 'reading'], default: 'lesson' })
+  type: string;
+
+  @Prop({ default: 30 })
+  estimatedMinutes: number;
+
+  @Prop({ default: false })
+  completed: boolean;
+
+  @Prop()
+  completedAt: Date;
+
+  @Prop({ default: '' })
+  notes: string;
+
+  @Prop({ default: 0 })
+  order: number;
+}
+
+export const CronogramDailyItemSchema = SchemaFactory.createForClass(CronogramDailyItem);
+
 // ─── Milestone checkpoint ───
 @Schema({ _id: false })
 export class CronogramMilestone {
@@ -110,6 +152,9 @@ export class StudyCronogram {
 
   @Prop({ type: [CronogramMilestoneSchema], default: [] })
   milestones: CronogramMilestone[];
+
+  @Prop({ type: [CronogramDailyItemSchema], default: [] })
+  dailyPlan: CronogramDailyItem[];
 
   @Prop({
     enum: ['draft', 'active', 'paused', 'completed', 'cancelled'],

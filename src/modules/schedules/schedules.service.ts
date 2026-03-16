@@ -343,9 +343,75 @@ export class SchedulesService {
       ? Math.round(enrichedTracks.reduce((s, t) => s + (t.progressPercent || 0), 0) / enrichedTracks.length)
       : 0;
 
+    // ── Build today's study plan from dailyPlan ──
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date(now);
+    todayEnd.setHours(23, 59, 59, 999);
+
+    // Sync dailyPlan completion status with real lesson progress
+    const dailyPlan = (cronogram.dailyPlan || []).map(item => {
+      const progress = progressMap.get(item.trackId?.toString());
+      const lessonDone = progress?.lessonProgress?.some(
+        lp => lp.lessonId?.toString() === item.lessonId?.toString() && lp.completed,
+      );
+      return { ...item, completed: item.completed || !!lessonDone };
+    });
+
+    const todayPlan = dailyPlan
+      .filter(item => {
+        const d = new Date(item.date);
+        return d >= todayStart && d <= todayEnd;
+      })
+      .sort((a, b) => (a.order || 0) - (b.order || 0))
+      .map(item => {
+        const track = trackMap.get(item.trackId?.toString());
+        return {
+          ...item,
+          track: track ? {
+            _id: (track as any)._id,
+            title: track.title,
+            icon: track.icon,
+            color: track.color,
+          } : null,
+        };
+      });
+
+    // Week plan for the current week
+    const weekStart = new Date(todayStart);
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    weekEnd.setHours(23, 59, 59, 999);
+
+    const weekPlan = dailyPlan
+      .filter(item => {
+        const d = new Date(item.date);
+        return d >= weekStart && d <= weekEnd;
+      })
+      .sort((a, b) => {
+        const da = new Date(a.date).getTime() - new Date(b.date).getTime();
+        return da !== 0 ? da : (a.order || 0) - (b.order || 0);
+      })
+      .map(item => {
+        const track = trackMap.get(item.trackId?.toString());
+        return {
+          ...item,
+          track: track ? {
+            _id: (track as any)._id,
+            title: track.title,
+            icon: track.icon,
+            color: track.color,
+          } : null,
+        };
+      });
+
     return {
       ...cronogram,
       tracks: enrichedTracks,
+      dailyPlan: undefined, // Don't send the full array
+      todayPlan,
+      weekPlan,
       overallProgress,
       completedTracks,
       totalTracks: enrichedTracks.length,

@@ -1322,6 +1322,53 @@ export class AdminService {
       ? cronogramTracks[cronogramTracks.length - 1].endDate
       : currentDate;
 
+    // ── Generate daily study plan ──
+    // Distribute lessons across study days within each track's date range
+    const dailyPlan: any[] = [];
+    for (const ct of cronogramTracks) {
+      const track = tracks.find(t => (t as any)._id.toString() === ct.trackId.toString());
+      if (!track || !track.lessons?.length) continue;
+
+      const sortedLessons = [...track.lessons].sort((a, b) => (a.order || 0) - (b.order || 0));
+      let lessonIdx = 0;
+      const day = new Date(ct.startDate);
+      const trackEnd = new Date(ct.endDate);
+
+      while (day <= trackEnd && lessonIdx < sortedLessons.length) {
+        if (!weeklyDays.includes(day.getDay())) {
+          day.setDate(day.getDate() + 1);
+          continue;
+        }
+
+        let remainingMinutes = dailyHours * 60;
+        let dayOrder = 0;
+
+        while (remainingMinutes > 0 && lessonIdx < sortedLessons.length) {
+          const lesson = sortedLessons[lessonIdx];
+          const duration = lesson.durationMinutes || 30;
+
+          dailyPlan.push({
+            _id: new Types.ObjectId(),
+            date: new Date(day),
+            trackId: ct.trackId,
+            lessonId: (lesson as any)._id,
+            title: lesson.title,
+            description: lesson.description || '',
+            type: 'lesson',
+            estimatedMinutes: duration,
+            completed: false,
+            notes: '',
+            order: dayOrder++,
+          });
+
+          remainingMinutes -= duration;
+          lessonIdx++;
+        }
+
+        day.setDate(day.getDate() + 1);
+      }
+    }
+
     const cronogram = await this.cronogramModel.create({
       userId: new Types.ObjectId(data.userId),
       createdBy: new Types.ObjectId(adminId),
@@ -1335,6 +1382,7 @@ export class AdminService {
       totalStudyDays: totalDays,
       tracks: cronogramTracks,
       milestones,
+      dailyPlan,
       status: data.status || 'active',
       overallProgress: 0,
       progressHistory: [{ date: new Date(), progress: 0, tracksCompleted: 0 }],
