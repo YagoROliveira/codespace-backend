@@ -26,6 +26,7 @@ import { UploadsModule } from './modules/uploads/uploads.module';
 import { SchedulesModule } from './modules/schedules/schedules.module';
 import { LabModule } from './modules/lab/lab.module';
 import { HealthModule } from './modules/health/health.module';
+import { UserCacheModule } from './common/cache/user-cache.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { HealthModule } from './modules/health/health.module';
       }),
       inject: [ConfigService],
     }),
+    UserCacheModule,
     AuthModule,
     UsersModule,
     TracksModule,

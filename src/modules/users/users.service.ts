@@ -4,11 +4,13 @@ import { Model } from 'mongoose';
 import * as bcrypt from 'bcryptjs';
 import { User, UserDocument } from './schemas/user.schema';
 import { UpdateUserDto, UpdatePasswordDto, UpdateNotificationsDto } from './dto/update-user.dto';
+import { UserCacheService } from '../../common/cache/user-cache.service';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
+    private userCache: UserCacheService,
   ) { }
 
   async findAll(): Promise<any[]> {
@@ -51,6 +53,7 @@ export class UsersService {
       .findByIdAndUpdate(id, { $set: dto }, { new: true })
       .exec();
     if (!user) throw new NotFoundException('Usuário não encontrado');
+    this.userCache.invalidate(id);
     return user;
   }
 
@@ -63,6 +66,7 @@ export class UsersService {
 
     user.password = await bcrypt.hash(dto.newPassword, 12);
     await user.save();
+    this.userCache.invalidate(id);
   }
 
   async updateNotifications(id: string, dto: UpdateNotificationsDto): Promise<UserDocument> {
@@ -74,6 +78,7 @@ export class UsersService {
       )
       .exec();
     if (!user) throw new NotFoundException('Usuário não encontrado');
+    this.userCache.invalidate(id);
     return user;
   }
 
@@ -84,6 +89,7 @@ export class UsersService {
   async deleteUser(id: string): Promise<void> {
     const result = await this.userModel.findByIdAndDelete(id).exec();
     if (!result) throw new NotFoundException('Usuário não encontrado');
+    this.userCache.invalidate(id);
   }
 
   async activateAccount(userId: string, plan: string, subscriptionEndDate: Date): Promise<UserDocument> {
@@ -99,6 +105,7 @@ export class UsersService {
       { new: true },
     ).exec();
     if (!user) throw new NotFoundException('Usuário não encontrado');
+    this.userCache.invalidate(userId);
     return user;
   }
 
@@ -114,6 +121,7 @@ export class UsersService {
       { new: true },
     ).exec();
     if (!user) throw new NotFoundException('Usuário não encontrado');
+    this.userCache.invalidate(userId);
     return user;
   }
 
@@ -124,5 +132,6 @@ export class UsersService {
 
   async setStripeCustomerId(userId: string, customerId: string): Promise<void> {
     await this.userModel.findByIdAndUpdate(userId, { stripeCustomerId: customerId }).exec();
+    this.userCache.invalidate(userId);
   }
 }

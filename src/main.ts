@@ -4,6 +4,7 @@ import { Reflector } from '@nestjs/core';
 import compression from 'compression';
 import { AppModule } from './app.module';
 import { CacheControlInterceptor } from './common/interceptors/cache-control.interceptor';
+import { RequestTimingMiddleware } from './common/middleware/request-timing.middleware';
 
 let cachedApp: any;
 let appPromise: Promise<any> | null = null;
@@ -15,6 +16,10 @@ async function createApp() {
   });
 
   app.setGlobalPrefix('api');
+
+  // Request timing middleware — logs slow requests in production
+  const timingMiddleware = new RequestTimingMiddleware();
+  app.use(timingMiddleware.use.bind(timingMiddleware));
 
   // Gzip/Brotli compression — reduces payload size by ~70%
   app.use(compression({
