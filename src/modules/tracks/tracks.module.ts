@@ -4,6 +4,7 @@ import { TracksController } from './tracks.controller';
 import { TracksService } from './tracks.service';
 import { Track, TrackSchema } from './schemas/track.schema';
 import { UserTrackProgress, UserTrackProgressSchema } from './schemas/user-track-progress.schema';
+import { StudyCronogram, StudyCronogramSchema } from '../admin/schemas/study-cronogram.schema';
 import { CertificatesModule } from '../certificates/certificates.module';
 
 @Module({
@@ -11,6 +12,7 @@ import { CertificatesModule } from '../certificates/certificates.module';
     MongooseModule.forFeature([
       { name: Track.name, schema: TrackSchema },
       { name: UserTrackProgress.name, schema: UserTrackProgressSchema },
+      { name: StudyCronogram.name, schema: StudyCronogramSchema },
     ]),
     CertificatesModule,
   ],

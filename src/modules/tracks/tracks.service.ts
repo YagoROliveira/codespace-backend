@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Track, TrackDocument } from './schemas/track.schema';
 import { UserTrackProgress, UserTrackProgressDocument } from './schemas/user-track-progress.schema';
+import { StudyCronogram, StudyCronogramDocument } from '../admin/schemas/study-cronogram.schema';
 import { CertificatesService } from '../certificates/certificates.service';
 
 @Injectable()
@@ -10,6 +11,7 @@ export class TracksService {
   constructor(
     @InjectModel(Track.name) private trackModel: Model<TrackDocument>,
     @InjectModel(UserTrackProgress.name) private progressModel: Model<UserTrackProgressDocument>,
+    @InjectModel(StudyCronogram.name) private cronogramModel: Model<StudyCronogramDocument>,
     private readonly certificatesService: CertificatesService,
   ) { }
 
@@ -161,6 +163,23 @@ export class TracksService {
     }
 
     await progress.save();
+
+    // Mark the matching dailyPlan item as completed in the study cronogram
+    try {
+      await this.cronogramModel.updateOne(
+        {
+          userId: new Types.ObjectId(userId),
+          status: { $in: ['active', 'draft', 'paused'] },
+          'dailyPlan.trackId': new Types.ObjectId(trackId),
+          'dailyPlan.lessonId': new Types.ObjectId(lessonId),
+        },
+        { $set: { 'dailyPlan.$[elem].completed': true } },
+        { arrayFilters: [{ 'elem.trackId': new Types.ObjectId(trackId), 'elem.lessonId': new Types.ObjectId(lessonId) }] },
+      );
+    } catch (err) {
+      console.error('Erro ao atualizar cronograma:', err);
+    }
+
     return progress;
   }
 }

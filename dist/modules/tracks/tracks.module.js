@@ -13,6 +13,7 @@ const tracks_controller_1 = require("./tracks.controller");
 const tracks_service_1 = require("./tracks.service");
 const track_schema_1 = require("./schemas/track.schema");
 const user_track_progress_schema_1 = require("./schemas/user-track-progress.schema");
+const study_cronogram_schema_1 = require("../admin/schemas/study-cronogram.schema");
 const certificates_module_1 = require("../certificates/certificates.module");
 let TracksModule = class TracksModule {
 };
@@ -23,6 +24,7 @@ exports.TracksModule = TracksModule = __decorate([
             mongoose_1.MongooseModule.forFeature([
                 { name: track_schema_1.Track.name, schema: track_schema_1.TrackSchema },
                 { name: user_track_progress_schema_1.UserTrackProgress.name, schema: user_track_progress_schema_1.UserTrackProgressSchema },
+                { name: study_cronogram_schema_1.StudyCronogram.name, schema: study_cronogram_schema_1.StudyCronogramSchema },
             ]),
             certificates_module_1.CertificatesModule,
         ],

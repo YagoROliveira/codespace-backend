@@ -18,11 +18,13 @@ const mongoose_1 = require("@nestjs/mongoose");
 const mongoose_2 = require("mongoose");
 const track_schema_1 = require("./schemas/track.schema");
 const user_track_progress_schema_1 = require("./schemas/user-track-progress.schema");
+const study_cronogram_schema_1 = require("../admin/schemas/study-cronogram.schema");
 const certificates_service_1 = require("../certificates/certificates.service");
 let TracksService = class TracksService {
-    constructor(trackModel, progressModel, certificatesService) {
+    constructor(trackModel, progressModel, cronogramModel, certificatesService) {
         this.trackModel = trackModel;
         this.progressModel = progressModel;
+        this.cronogramModel = cronogramModel;
         this.certificatesService = certificatesService;
     }
     async findAll() {
@@ -142,6 +144,17 @@ let TracksService = class TracksService {
             progress.status = 'in_progress';
         }
         await progress.save();
+        try {
+            await this.cronogramModel.updateOne({
+                userId: new mongoose_2.Types.ObjectId(userId),
+                status: { $in: ['active', 'draft', 'paused'] },
+                'dailyPlan.trackId': new mongoose_2.Types.ObjectId(trackId),
+                'dailyPlan.lessonId': new mongoose_2.Types.ObjectId(lessonId),
+            }, { $set: { 'dailyPlan.$[elem].completed': true } }, { arrayFilters: [{ 'elem.trackId': new mongoose_2.Types.ObjectId(trackId), 'elem.lessonId': new mongoose_2.Types.ObjectId(lessonId) }] });
+        }
+        catch (err) {
+            console.error('Erro ao atualizar cronograma:', err);
+        }
         return progress;
     }
 };
@@ -150,7 +163,9 @@ exports.TracksService = TracksService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, mongoose_1.InjectModel)(track_schema_1.Track.name)),
     __param(1, (0, mongoose_1.InjectModel)(user_track_progress_schema_1.UserTrackProgress.name)),
+    __param(2, (0, mongoose_1.InjectModel)(study_cronogram_schema_1.StudyCronogram.name)),
     __metadata("design:paramtypes", [mongoose_2.Model,
+        mongoose_2.Model,
         mongoose_2.Model,
         certificates_service_1.CertificatesService])
 ], TracksService);

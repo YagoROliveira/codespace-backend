@@ -1323,51 +1323,65 @@ export class AdminService {
       : currentDate;
 
     // ── Generate daily study plan ──
-    // Distribute lessons across study days within each track's date range
+    // Distribute ALL lessons across consecutive study days starting from startDate.
+    // Lessons are placed in track order; each day is filled up to dailyHours.
     const dailyPlan: any[] = [];
+    const allLessons: { trackId: any; lesson: any }[] = [];
+
     for (const ct of cronogramTracks) {
       const track = tracks.find(t => (t as any)._id.toString() === ct.trackId.toString());
       if (!track || !track.lessons?.length) continue;
 
-      const sortedLessons = [...track.lessons].sort((a, b) => (a.order || 0) - (b.order || 0));
-      let lessonIdx = 0;
-      const day = new Date(ct.startDate);
-      const trackEnd = new Date(ct.endDate);
-
-      while (day <= trackEnd && lessonIdx < sortedLessons.length) {
-        if (!weeklyDays.includes(day.getDay())) {
-          day.setDate(day.getDate() + 1);
-          continue;
-        }
-
-        let remainingMinutes = dailyHours * 60;
-        let dayOrder = 0;
-
-        while (remainingMinutes > 0 && lessonIdx < sortedLessons.length) {
-          const lesson = sortedLessons[lessonIdx];
-          const duration = lesson.durationMinutes || 30;
-
-          dailyPlan.push({
-            _id: new Types.ObjectId(),
-            date: new Date(day),
-            trackId: ct.trackId,
-            lessonId: (lesson as any)._id,
-            title: lesson.title,
-            description: lesson.description || '',
-            type: 'lesson',
-            estimatedMinutes: duration,
-            completed: false,
-            notes: '',
-            order: dayOrder++,
-          });
-
-          remainingMinutes -= duration;
-          lessonIdx++;
-        }
-
-        day.setDate(day.getDate() + 1);
+      const sorted = [...track.lessons].sort((a, b) => (a.order || 0) - (b.order || 0));
+      for (const lesson of sorted) {
+        allLessons.push({ trackId: ct.trackId, lesson });
       }
     }
+
+    let lessonIdx = 0;
+    const planDay = new Date(startDate);
+    // Safety: don't exceed 2 years of iteration
+    const maxDate = new Date(startDate);
+    maxDate.setFullYear(maxDate.getFullYear() + 2);
+
+    while (lessonIdx < allLessons.length && planDay <= maxDate) {
+      if (!weeklyDays.includes(planDay.getDay())) {
+        planDay.setDate(planDay.getDate() + 1);
+        continue;
+      }
+
+      let remainingMinutes = dailyHours * 60;
+      let dayOrder = 0;
+
+      while (remainingMinutes > 0 && lessonIdx < allLessons.length) {
+        const { trackId, lesson } = allLessons[lessonIdx];
+        const duration = lesson.durationMinutes || 30;
+
+        dailyPlan.push({
+          _id: new Types.ObjectId(),
+          date: new Date(planDay),
+          trackId,
+          lessonId: (lesson as any)._id,
+          title: lesson.title,
+          description: lesson.description || '',
+          type: 'lesson',
+          estimatedMinutes: duration,
+          completed: false,
+          notes: '',
+          order: dayOrder++,
+        });
+
+        remainingMinutes -= duration;
+        lessonIdx++;
+      }
+
+      planDay.setDate(planDay.getDate() + 1);
+    }
+
+    // Recalculate endDate based on the actual last day in dailyPlan
+    const actualEndDate = dailyPlan.length
+      ? new Date(Math.max(...dailyPlan.map(d => new Date(d.date).getTime())))
+      : endDate;
 
     const cronogram = await this.cronogramModel.create({
       userId: new Types.ObjectId(data.userId),
@@ -1375,7 +1389,7 @@ export class AdminService {
       name: data.name || `Cronograma de ${(user as any).name}`,
       description: data.description || '',
       startDate,
-      endDate,
+      endDate: actualEndDate,
       dailyStudyHours: dailyHours,
       weeklyStudyDays: weeklyDays,
       totalEstimatedHours,
@@ -1498,7 +1512,7 @@ export class AdminService {
   }
 
   async recalculateCronogram(cronogramId: string): Promise<any> {
-    const cronogram = await this.cronogramModel.findById(cronogramId).lean();
+    const cronogram = await this.cronogramModel.findById(cronogramId);
     if (!cronogram) throw new NotFoundException('Cronograma não encontrado');
 
     const tracks = await this.trackModel
@@ -1538,19 +1552,80 @@ export class AdminService {
         order: i,
         estimatedHours: hours,
         startDate: trackStart,
-        endDate: new Date(trackEnd.getTime() - 86400000), // subtract the day we added
+        endDate: new Date(trackEnd.getTime() - 86400000),
         totalLessons: track?.totalLessons || track?.lessons?.length || ct.totalLessons || 0,
       };
     });
 
-    const endDate = updatedTracks.length
-      ? updatedTracks[updatedTracks.length - 1].endDate
-      : currentDate;
+    // ── Regenerate daily plan across consecutive study days ──
+    // Preserve completion status from old plan
+    const oldCompleted = new Set<string>();
+    (cronogram.dailyPlan || []).forEach(item => {
+      if (item.completed && item.lessonId) {
+        oldCompleted.add(item.lessonId.toString());
+      }
+    });
+
+    const allLessons: { trackId: any; lesson: any }[] = [];
+    for (const ct of updatedTracks) {
+      const track = trackMap.get(ct.trackId.toString());
+      if (!track || !track.lessons?.length) continue;
+      const sorted = [...track.lessons].sort((a, b) => (a.order || 0) - (b.order || 0));
+      for (const lesson of sorted) {
+        allLessons.push({ trackId: ct.trackId, lesson });
+      }
+    }
+
+    const dailyPlan: any[] = [];
+    let lessonIdx = 0;
+    const planDay = new Date(cronogram.startDate);
+    const maxDate = new Date(cronogram.startDate);
+    maxDate.setFullYear(maxDate.getFullYear() + 2);
+
+    while (lessonIdx < allLessons.length && planDay <= maxDate) {
+      if (!weeklyDays.includes(planDay.getDay())) {
+        planDay.setDate(planDay.getDate() + 1);
+        continue;
+      }
+
+      let remainingMinutes = dailyHours * 60;
+      let dayOrder = 0;
+
+      while (remainingMinutes > 0 && lessonIdx < allLessons.length) {
+        const { trackId, lesson } = allLessons[lessonIdx];
+        const duration = lesson.durationMinutes || 30;
+        const lessonIdStr = (lesson as any)._id.toString();
+
+        dailyPlan.push({
+          _id: new Types.ObjectId(),
+          date: new Date(planDay),
+          trackId,
+          lessonId: (lesson as any)._id,
+          title: lesson.title,
+          description: lesson.description || '',
+          type: 'lesson',
+          estimatedMinutes: duration,
+          completed: oldCompleted.has(lessonIdStr),
+          notes: '',
+          order: dayOrder++,
+        });
+
+        remainingMinutes -= duration;
+        lessonIdx++;
+      }
+
+      planDay.setDate(planDay.getDate() + 1);
+    }
+
+    const actualEndDate = dailyPlan.length
+      ? new Date(Math.max(...dailyPlan.map(d => new Date(d.date).getTime())))
+      : (updatedTracks.length ? updatedTracks[updatedTracks.length - 1].endDate : currentDate);
 
     await this.cronogramModel.findByIdAndUpdate(cronogramId, {
       $set: {
         tracks: updatedTracks,
-        endDate,
+        dailyPlan,
+        endDate: actualEndDate,
         totalEstimatedHours,
       },
     });
