@@ -73,6 +73,13 @@ export class SchedulesController {
     return this.schedulesService.getStudentScheduleHistory(userId);
   }
 
+  // ─── STUDY CRONOGRAM (student) ───
+
+  @Get('my-cronogram')
+  async getMyStudyCronogram(@CurrentUser('_id') userId: string) {
+    return this.schedulesService.getMyStudyCronogram(userId);
+  }
+
   @Get('student/:userId')
   @UseGuards(RolesGuard)
   @Roles('admin', 'mentor')

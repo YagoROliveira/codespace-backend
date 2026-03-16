@@ -8,6 +8,9 @@ import { ScheduleEvent, ScheduleEventSchema } from './schemas/schedule-event.sch
 import { Plan, PlanSchema } from '../plans/schemas/plan.schema';
 import { Subscription, SubscriptionSchema } from '../plans/schemas/subscription.schema';
 import { Session, SessionSchema } from '../sessions/schemas/session.schema';
+import { StudyCronogram, StudyCronogramSchema } from '../admin/schemas/study-cronogram.schema';
+import { Track, TrackSchema } from '../tracks/schemas/track.schema';
+import { UserTrackProgress, UserTrackProgressSchema } from '../tracks/schemas/user-track-progress.schema';
 
 @Module({
   imports: [
@@ -18,6 +21,9 @@ import { Session, SessionSchema } from '../sessions/schemas/session.schema';
       { name: Plan.name, schema: PlanSchema },
       { name: Subscription.name, schema: SubscriptionSchema },
       { name: Session.name, schema: SessionSchema },
+      { name: StudyCronogram.name, schema: StudyCronogramSchema },
+      { name: Track.name, schema: TrackSchema },
+      { name: UserTrackProgress.name, schema: UserTrackProgressSchema },
     ]),
   ],
   controllers: [SchedulesController],

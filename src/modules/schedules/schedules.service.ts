@@ -15,6 +15,9 @@ import {
 import { Plan, PlanDocument } from '../plans/schemas/plan.schema';
 import { Subscription, SubscriptionDocument } from '../plans/schemas/subscription.schema';
 import { Session, SessionDocument } from '../sessions/schemas/session.schema';
+import { StudyCronogram, StudyCronogramDocument } from '../admin/schemas/study-cronogram.schema';
+import { Track, TrackDocument } from '../tracks/schemas/track.schema';
+import { UserTrackProgress, UserTrackProgressDocument } from '../tracks/schemas/user-track-progress.schema';
 
 @Injectable()
 export class SchedulesService {
@@ -25,6 +28,9 @@ export class SchedulesService {
     @InjectModel(Plan.name) private planModel: Model<PlanDocument>,
     @InjectModel(Subscription.name) private subscriptionModel: Model<SubscriptionDocument>,
     @InjectModel(Session.name) private sessionModel: Model<SessionDocument>,
+    @InjectModel(StudyCronogram.name) private cronogramModel: Model<StudyCronogramDocument>,
+    @InjectModel(Track.name) private trackModel: Model<TrackDocument>,
+    @InjectModel(UserTrackProgress.name) private progressModel: Model<UserTrackProgressDocument>,
   ) { }
 
   // ─── TEMPLATES (Admin/Mentor) ───
@@ -267,5 +273,84 @@ export class SchedulesService {
       .populate('userId', 'name avatar email plan')
       .lean()
       .exec();
+  }
+
+  // ─── STUDY CRONOGRAM (student-facing) ───
+
+  async getMyStudyCronogram(userId: string): Promise<any> {
+    const cronogram = await this.cronogramModel
+      .findOne({
+        userId: new Types.ObjectId(userId),
+        status: { $in: ['active', 'draft', 'paused'] },
+      })
+      .populate('createdBy', 'name avatar')
+      .lean();
+
+    if (!cronogram) return null;
+
+    // Enrich tracks with Track details & real-time progress
+    const trackIds = cronogram.tracks.map(t => t.trackId);
+    const [tracks, progresses] = await Promise.all([
+      this.trackModel.find({ _id: { $in: trackIds } }).lean(),
+      this.progressModel.find({
+        userId: new Types.ObjectId(userId),
+        trackId: { $in: trackIds },
+      }).lean(),
+    ]);
+
+    const trackMap = new Map(tracks.map(t => [(t as any)._id.toString(), t]));
+    const progressMap = new Map(progresses.map(p => [p.trackId.toString(), p]));
+
+    const now = new Date();
+    let completedTracks = 0;
+    let overdueTracks = 0;
+    let inProgressTracks = 0;
+
+    const enrichedTracks = cronogram.tracks.map(ct => {
+      const track = trackMap.get(ct.trackId.toString());
+      const progress = progressMap.get(ct.trackId.toString());
+
+      const currentStatus = progress?.status === 'completed'
+        ? 'completed'
+        : (ct.endDate < now && (progress?.progressPercent || 0) < 100)
+          ? 'overdue'
+          : progress?.status === 'in_progress' ? 'in_progress' : ct.status;
+
+      if (currentStatus === 'completed') completedTracks++;
+      else if (currentStatus === 'overdue') overdueTracks++;
+      else if (currentStatus === 'in_progress') inProgressTracks++;
+
+      return {
+        ...ct,
+        status: currentStatus,
+        progressPercent: progress?.progressPercent ?? ct.progressPercent,
+        completedLessons: progress?.completedLessons ?? ct.completedLessons,
+        totalLessons: track?.totalLessons || track?.lessons?.length || ct.totalLessons,
+        track: track ? {
+          _id: (track as any)._id,
+          title: track.title,
+          description: track.description,
+          icon: track.icon,
+          color: track.color,
+          difficulty: track.difficulty,
+          estimatedHours: track.estimatedHours,
+          totalLessons: track.totalLessons || track.lessons?.length || 0,
+        } : null,
+      };
+    });
+
+    const overallProgress = enrichedTracks.length
+      ? Math.round(enrichedTracks.reduce((s, t) => s + (t.progressPercent || 0), 0) / enrichedTracks.length)
+      : 0;
+
+    return {
+      ...cronogram,
+      tracks: enrichedTracks,
+      overallProgress,
+      completedTracks,
+      totalTracks: enrichedTracks.length,
+      overdueTracks,
+      inProgressTracks,
+    };
   }
 }
