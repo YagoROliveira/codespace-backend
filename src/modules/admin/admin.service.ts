@@ -1213,7 +1213,7 @@ export class AdminService {
       trackIds?: string[];
       status?: string;
     },
-  ) {
+  ): Promise<any> {
     const user = await this.userModel.findById(data.userId).lean();
     if (!user) throw new NotFoundException('Aluno não encontrado');
 
@@ -1343,7 +1343,7 @@ export class AdminService {
     return this.getStudentCronogram(data.userId);
   }
 
-  async getStudentCronogram(userId: string) {
+  async getStudentCronogram(userId: string): Promise<any> {
     const cronogram = await this.cronogramModel
       .findOne({ userId: new Types.ObjectId(userId), status: { $in: ['active', 'draft'] } })
       .populate('createdBy', 'name avatar')
@@ -1449,7 +1449,7 @@ export class AdminService {
     return cronogram;
   }
 
-  async recalculateCronogram(cronogramId: string) {
+  async recalculateCronogram(cronogramId: string): Promise<any> {
     const cronogram = await this.cronogramModel.findById(cronogramId).lean();
     if (!cronogram) throw new NotFoundException('Cronograma não encontrado');
 
@@ -1566,7 +1566,7 @@ export class AdminService {
     return { message: 'Cronograma removido' };
   }
 
-  async syncCronogramProgress(cronogramId: string) {
+  async syncCronogramProgress(cronogramId: string): Promise<any> {
     const cronogram = await this.cronogramModel.findById(cronogramId).lean();
     if (!cronogram) throw new NotFoundException('Cronograma não encontrado');
 

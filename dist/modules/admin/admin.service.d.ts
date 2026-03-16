@@ -7,7 +7,7 @@ import { Subscription, SubscriptionDocument } from '../plans/schemas/subscriptio
 import { PlanDocument } from '../plans/schemas/plan.schema';
 import { CodeEvaluationDocument } from './schemas/code-evaluation.schema';
 import { PaymentTransactionDocument } from './schemas/payment-transaction.schema';
-import { StudyCronogramDocument } from './schemas/study-cronogram.schema';
+import { StudyCronogram, StudyCronogramDocument } from './schemas/study-cronogram.schema';
 import { GoogleCalendarService } from '../google-calendar/google-calendar.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { InAppNotificationService } from '../notifications/in-app-notification.service';
@@ -398,4 +398,54 @@ export declare class AdminService {
     getStudentPaymentSummary(studentId: string): Promise<any>;
     private buildAccessGrantedHtml;
     private buildAccessRevokedHtml;
+    generateCronogram(adminId: string, data: {
+        userId: string;
+        name?: string;
+        description?: string;
+        startDate: string;
+        dailyStudyHours: number;
+        weeklyStudyDays?: number[];
+        trackIds?: string[];
+        status?: string;
+    }): Promise<any>;
+    getStudentCronogram(userId: string): Promise<any>;
+    getStudentCronogramHistory(userId: string): Promise<(import("mongoose").FlattenMaps<StudyCronogramDocument> & Required<{
+        _id: Types.ObjectId;
+    }> & {
+        __v: number;
+    })[]>;
+    updateCronogram(cronogramId: string, data: Record<string, any>): Promise<import("mongoose").Document<unknown, {}, StudyCronogramDocument, {}, {}> & StudyCronogram & import("mongoose").Document<Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
+        _id: Types.ObjectId;
+    }> & {
+        __v: number;
+    }>;
+    recalculateCronogram(cronogramId: string): Promise<any>;
+    updateCronogramTrackNotes(cronogramId: string, trackItemId: string, notes: string): Promise<import("mongoose").Document<unknown, {}, StudyCronogramDocument, {}, {}> & StudyCronogram & import("mongoose").Document<Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
+        _id: Types.ObjectId;
+    }> & {
+        __v: number;
+    }>;
+    addCronogramMilestone(cronogramId: string, milestone: {
+        title: string;
+        description?: string;
+        targetDate: string;
+    }): Promise<import("mongoose").Document<unknown, {}, StudyCronogramDocument, {}, {}> & StudyCronogram & import("mongoose").Document<Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
+        _id: Types.ObjectId;
+    }> & {
+        __v: number;
+    }>;
+    completeCronogramMilestone(cronogramId: string, milestoneId: string): Promise<import("mongoose").Document<unknown, {}, StudyCronogramDocument, {}, {}> & StudyCronogram & import("mongoose").Document<Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
+        _id: Types.ObjectId;
+    }> & {
+        __v: number;
+    }>;
+    deleteCronogramMilestone(cronogramId: string, milestoneId: string): Promise<import("mongoose").Document<unknown, {}, StudyCronogramDocument, {}, {}> & StudyCronogram & import("mongoose").Document<Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
+        _id: Types.ObjectId;
+    }> & {
+        __v: number;
+    }>;
+    deleteCronogram(cronogramId: string): Promise<{
+        message: string;
+    }>;
+    syncCronogramProgress(cronogramId: string): Promise<any>;
 }
