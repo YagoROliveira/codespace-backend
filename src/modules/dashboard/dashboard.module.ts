@@ -10,6 +10,7 @@ import { StudyCronogram, StudyCronogramSchema } from '../admin/schemas/study-cro
 import { Job, JobSchema } from '../jobs/schemas/job.schema';
 import { Message, MessageSchema } from '../community/schemas/message.schema';
 import { Checkin, CheckinSchema } from '../checkins/schemas/checkin.schema';
+import { ScheduleEvent, ScheduleEventSchema } from '../schedules/schemas/schedule-event.schema';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { Checkin, CheckinSchema } from '../checkins/schemas/checkin.schema';
       { name: Job.name, schema: JobSchema },
       { name: Message.name, schema: MessageSchema },
       { name: Checkin.name, schema: CheckinSchema },
+      { name: ScheduleEvent.name, schema: ScheduleEventSchema },
     ]),
   ],
   controllers: [DashboardController],

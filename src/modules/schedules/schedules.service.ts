@@ -164,18 +164,66 @@ export class SchedulesService {
   }
 
   async getStudentEvents(userId: string, startDate?: string, endDate?: string): Promise<any[]> {
-    const query: any = { userId: new Types.ObjectId(userId) };
+    const userOid = new Types.ObjectId(userId);
+    const eventQuery: any = { userId: userOid };
+    const sessionQuery: any = { userId: userOid, status: { $in: ['scheduled', 'in_progress'] } };
+
     if (startDate || endDate) {
-      query.scheduledDate = {};
-      if (startDate) query.scheduledDate.$gte = new Date(startDate);
-      if (endDate) query.scheduledDate.$lte = new Date(endDate);
+      eventQuery.scheduledDate = {};
+      sessionQuery.scheduledAt = {};
+      if (startDate) {
+        eventQuery.scheduledDate.$gte = new Date(startDate);
+        sessionQuery.scheduledAt.$gte = new Date(startDate);
+      }
+      if (endDate) {
+        eventQuery.scheduledDate.$lte = new Date(endDate);
+        sessionQuery.scheduledAt.$lte = new Date(endDate);
+      }
     }
-    return this.eventModel
-      .find(query)
-      .sort({ scheduledDate: 1, startTime: 1 })
-      .populate('mentorId', 'name avatar')
-      .lean()
-      .exec();
+
+    const [events, sessions] = await Promise.all([
+      this.eventModel
+        .find(eventQuery)
+        .sort({ scheduledDate: 1, startTime: 1 })
+        .populate('mentorId', 'name avatar')
+        .lean()
+        .exec(),
+      this.sessionModel
+        .find(sessionQuery)
+        .select('title description scheduledAt durationMinutes status meetingUrl type mentorId')
+        .sort({ scheduledAt: 1 })
+        .populate('mentorId', 'name avatar')
+        .lean()
+        .exec(),
+    ]);
+
+    // Convert sessions to ScheduleEvent-like format
+    const sessionEvents = sessions.map((s: any) => {
+      const date = new Date(s.scheduledAt);
+      return {
+        _id: s._id,
+        userId,
+        mentorId: s.mentorId,
+        title: s.title,
+        description: s.description || '',
+        type: s.type === 'mentoring' ? 'session' : s.type === 'mock_interview' ? 'meeting' : 'session',
+        scheduledDate: s.scheduledAt,
+        startTime: `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`,
+        durationMinutes: s.durationMinutes || 60,
+        status: s.status === 'scheduled' ? 'pending' : s.status === 'completed' ? 'completed' : 'pending',
+        link: s.meetingUrl || '',
+        metadata: { source: 'session', sessionId: s._id, sessionType: s.type },
+        createdAt: (s as any).createdAt,
+        updatedAt: (s as any).updatedAt,
+      };
+    });
+
+    // Merge and sort by date
+    return [...events, ...sessionEvents].sort((a, b) => {
+      const da = new Date(a.scheduledDate).getTime();
+      const db = new Date(b.scheduledDate).getTime();
+      return da - db || (a.startTime || '').localeCompare(b.startTime || '');
+    });
   }
 
   async getMentorEvents(mentorId: string, startDate?: string, endDate?: string): Promise<any[]> {

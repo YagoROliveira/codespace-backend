@@ -9,6 +9,7 @@ import { StudyCronogram, StudyCronogramDocument } from '../admin/schemas/study-c
 import { Job, JobDocument } from '../jobs/schemas/job.schema';
 import { Message, MessageDocument } from '../community/schemas/message.schema';
 import { Checkin, CheckinDocument } from '../checkins/schemas/checkin.schema';
+import { ScheduleEvent, ScheduleEventDocument } from '../schedules/schemas/schedule-event.schema';
 import { toBRDateStr } from '../../common/utils/date.util';
 
 @Injectable()
@@ -22,6 +23,7 @@ export class DashboardService {
     @InjectModel(Job.name) private jobModel: Model<JobDocument>,
     @InjectModel(Message.name) private messageModel: Model<MessageDocument>,
     @InjectModel(Checkin.name) private checkinModel: Model<CheckinDocument>,
+    @InjectModel(ScheduleEvent.name) private eventModel: Model<ScheduleEventDocument>,
   ) { }
 
   async getDashboard(userId: string) {
@@ -44,6 +46,8 @@ export class DashboardService {
       recentMessages,
       todayCheckin,
       weekCheckins,
+      todayEvents,
+      todaySessions,
     ] = await Promise.all([
       this.userModel.findById(userId)
         .select('name avatar plan streakDays totalHours')
@@ -59,9 +63,9 @@ export class DashboardService {
           scheduledAt: { $gte: now },
           status: 'scheduled',
         })
-        .select('scheduledAt status mentorId topic')
+        .select('title type description scheduledAt durationMinutes status meetingUrl mentorId topics')
         .sort({ scheduledAt: 1 })
-        .limit(3)
+        .limit(5)
         .populate('mentorId', 'name avatar')
         .lean().exec(),
       this.sessionModel.countDocuments({
@@ -100,6 +104,23 @@ export class DashboardService {
         createdAt: { $gte: new Date(now.getTime() - 7 * 86400000) },
       }).select('hoursStudied productivityScore createdAt')
         .sort({ createdAt: -1 }).lean().exec(),
+      // Today's events (from schedule events collection)
+      this.eventModel.find({
+        userId: userObjectId,
+        scheduledDate: { $gte: todayStart, $lte: todayEnd },
+      }).select('title description type scheduledDate startTime durationMinutes status link mentorId')
+        .sort({ startTime: 1 })
+        .populate('mentorId', 'name avatar')
+        .lean().exec(),
+      // Today's sessions
+      this.sessionModel.find({
+        userId: userObjectId,
+        scheduledAt: { $gte: todayStart, $lte: todayEnd },
+        status: { $in: ['scheduled', 'in_progress', 'completed'] },
+      }).select('title type scheduledAt durationMinutes status meetingUrl mentorId')
+        .sort({ scheduledAt: 1 })
+        .populate('mentorId', 'name avatar')
+        .lean().exec(),
     ]);
 
     const inProgressTracks = activeTracks.map((progress) => ({
@@ -197,6 +218,47 @@ export class DashboardService {
       ? Math.round(weekCheckins.reduce((sum, c) => sum + (c.productivityScore || 0), 0) / weekCheckins.length)
       : 0;
 
+    // Build todayActivities: merge schedule events + sessions for today
+    const todayActivities: any[] = [];
+
+    // Add schedule events
+    for (const ev of todayEvents) {
+      todayActivities.push({
+        _id: (ev as any)._id,
+        title: ev.title,
+        description: ev.description || '',
+        type: ev.type,
+        scheduledDate: ev.scheduledDate,
+        startTime: ev.startTime || '',
+        durationMinutes: ev.durationMinutes || 60,
+        status: ev.status,
+        link: ev.link || '',
+        mentorId: ev.mentorId,
+        source: 'event',
+      });
+    }
+
+    // Add today's sessions
+    for (const s of todaySessions as any[]) {
+      const date = new Date(s.scheduledAt);
+      todayActivities.push({
+        _id: s._id,
+        title: s.title,
+        description: '',
+        type: s.type === 'mentoring' ? 'session' : s.type === 'mock_interview' ? 'meeting' : 'session',
+        scheduledDate: s.scheduledAt,
+        startTime: `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`,
+        durationMinutes: s.durationMinutes || 60,
+        status: s.status === 'scheduled' ? 'pending' : s.status,
+        link: s.meetingUrl || '',
+        mentorId: s.mentorId,
+        source: 'session',
+      });
+    }
+
+    // Sort by startTime
+    todayActivities.sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
+
     return {
       user: {
         name: user?.name,
@@ -217,6 +279,7 @@ export class DashboardService {
       upcomingSessions,
       cronogram: cronogramSummary,
       todayPlan,
+      todayActivities,
       nextLesson,
       recentJobs: recentJobs.map(j => ({
         _id: (j as any)._id,
