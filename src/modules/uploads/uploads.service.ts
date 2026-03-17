@@ -21,10 +21,17 @@ export class UploadsService {
 
     try {
       if (credentials) {
-        // JSON credentials string (for production/Vercel)
+        // credentials can be raw JSON or base64-encoded JSON (Vercel)
+        let parsed: any;
+        try {
+          parsed = JSON.parse(credentials);
+        } catch {
+          // Assume base64-encoded
+          parsed = JSON.parse(Buffer.from(credentials, 'base64').toString('utf-8'));
+        }
         this.storage = new Storage({
           projectId,
-          credentials: JSON.parse(credentials),
+          credentials: parsed,
         });
       } else if (keyFilename) {
         // Key file path (for local dev)
@@ -52,11 +59,15 @@ export class UploadsService {
 
     const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
     const filename = `${folder}/${randomUUID()}${ext}`;
+    const sizeKB = (file.size / 1024).toFixed(1);
+
+    this.logger.log(`[GCS] Uploading ${filename} (${sizeKB}KB, ${file.mimetype}) to bucket "${this.bucketName}"`);
 
     const bucket = this.storage.bucket(this.bucketName);
     const blob = bucket.file(filename);
 
     try {
+      const t0 = Date.now();
       await blob.save(file.buffer, {
         contentType: file.mimetype,
         resumable: false,
@@ -64,17 +75,22 @@ export class UploadsService {
           cacheControl: 'public, max-age=31536000',
         },
       });
+      this.logger.log(`[GCS] Saved ${filename} in ${Date.now() - t0}ms`);
 
       // Make public
+      const t1 = Date.now();
       await blob.makePublic();
+      this.logger.log(`[GCS] Made public ${filename} in ${Date.now() - t1}ms`);
 
       // Return CDN URL or default GCS URL
-      if (this.cdnBaseUrl) {
-        return `${this.cdnBaseUrl}/${filename}`;
-      }
-      return `https://storage.googleapis.com/${this.bucketName}/${filename}`;
+      const url = this.cdnBaseUrl
+        ? `${this.cdnBaseUrl}/${filename}`
+        : `https://storage.googleapis.com/${this.bucketName}/${filename}`;
+
+      this.logger.log(`[GCS] Upload complete: ${url} (total ${Date.now() - t0}ms)`);
+      return url;
     } catch (err: any) {
-      this.logger.error(`Upload failed: ${err.message}`);
+      this.logger.error(`[GCS] Upload FAILED for ${filename}: ${err.message}`, err.stack);
       throw new InternalServerErrorException('Failed to upload file');
     }
   }

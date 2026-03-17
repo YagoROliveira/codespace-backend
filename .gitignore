@@ -6,3 +6,6 @@ logs/
 *.log
 .DS_Store
 src/**/*.js
+
+# GCS credentials
+src/utils/codespace.json
