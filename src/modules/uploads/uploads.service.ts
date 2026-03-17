@@ -77,10 +77,8 @@ export class UploadsService {
       });
       this.logger.log(`[GCS] Saved ${filename} in ${Date.now() - t0}ms`);
 
-      // Make public
-      const t1 = Date.now();
-      await blob.makePublic();
-      this.logger.log(`[GCS] Made public ${filename} in ${Date.now() - t1}ms`);
+      // Bucket uses uniform bucket-level access — no per-object makePublic() needed.
+      // Public read is controlled by the bucket's IAM policy.
 
       // Return CDN URL or default GCS URL
       const url = this.cdnBaseUrl
