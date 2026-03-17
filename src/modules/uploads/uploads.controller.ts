@@ -1,5 +1,5 @@
 import {
-  Controller, Post, UseGuards, UseInterceptors, Logger,
+  Controller, Post, Get, UseGuards, UseInterceptors, Logger,
   UploadedFile, BadRequestException, Query,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -22,6 +22,18 @@ export class UploadsController {
   private readonly logger = new Logger(UploadsController.name);
 
   constructor(private readonly uploadsService: UploadsService) { }
+
+  /**
+   * GET /uploads/signed-url?path=avatars/uuid.png
+   * Returns a fresh signed URL for a GCS object.
+   */
+  @Get('signed-url')
+  async getSignedUrl(@Query('path') objectPath: string) {
+    if (!objectPath) throw new BadRequestException('Query param "path" is required');
+    const safeObjectPath = this.uploadsService.extractPath(objectPath);
+    const result = await this.uploadsService.getSignedUrl(safeObjectPath);
+    return result; // { url, expiresAt }
+  }
 
   @Post('image')
   @UseInterceptors(
@@ -47,10 +59,10 @@ export class UploadsController {
     this.logger.log(`[UPLOAD START] user=${userId} folder=${safeFolder} file="${file.originalname}" type=${file.mimetype} size=${sizeKB}KB`);
 
     const start = Date.now();
-    const url = await this.uploadsService.upload(safeFolder, file);
+    const result = await this.uploadsService.upload(safeFolder, file);
     const elapsed = Date.now() - start;
 
-    this.logger.log(`[UPLOAD OK] user=${userId} folder=${safeFolder} time=${elapsed}ms url=${url}`);
-    return { url };
+    this.logger.log(`[UPLOAD OK] user=${userId} folder=${safeFolder} time=${elapsed}ms path=${result.path}`);
+    return result; // { path, url, expiresAt }
   }
 }

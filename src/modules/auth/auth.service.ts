@@ -3,12 +3,14 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import { UsersService } from '../users/users.service';
+import { UploadsService } from '../uploads/uploads.service';
 import { RegisterDto, LoginDto } from './dto/auth.dto';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly usersService: UsersService,
+    private readonly uploadsService: UploadsService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) { }
@@ -30,7 +32,7 @@ export class AuthService {
         email: user.email,
         plan: user.plan,
         role: user.role,
-        avatar: user.avatar,
+        avatar: await this.uploadsService.resolveAvatarUrl(user.avatar),
         accountStatus: user.accountStatus || 'inactive',
       },
       token,
@@ -60,7 +62,7 @@ export class AuthService {
         email: user.email,
         plan: user.plan,
         role: user.role,
-        avatar: user.avatar,
+        avatar: await this.uploadsService.resolveAvatarUrl(user.avatar),
         accountStatus: user.accountStatus || 'inactive',
       },
       token,
@@ -107,7 +109,7 @@ export class AuthService {
         email: user.email,
         plan: user.plan,
         role: user.role,
-        avatar: user.avatar,
+        avatar: await this.uploadsService.resolveAvatarUrl(user.avatar),
         accountStatus: user.accountStatus || 'inactive',
       },
       token,

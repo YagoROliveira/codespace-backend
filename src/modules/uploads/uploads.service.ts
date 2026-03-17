@@ -4,6 +4,9 @@ import { Storage } from '@google-cloud/storage';
 import { randomUUID } from 'crypto';
 import * as path from 'path';
 
+/** Default signed-URL lifetime: 7 days (in ms) */
+const SIGNED_URL_EXPIRES_MS = 7 * 24 * 60 * 60 * 1000;
+
 @Injectable()
 export class UploadsService {
   private readonly logger = new Logger(UploadsService.name);
@@ -44,15 +47,99 @@ export class UploadsService {
     }
   }
 
+  // ─── Helpers ───────────────────────────────────────────────
+
   /**
-   * Upload a file buffer to GCS and return the public URL.
-   * @param folder  e.g. "avatars", "jobs", "resources"
-   * @param file    multer file object
+   * Check if a value looks like a GCS object path (not an http URL).
+   */
+  isGcsPath(value: string): boolean {
+    return !!value && !value.startsWith('http');
+  }
+
+  /**
+   * Extract the GCS object path from a full URL or return as-is if already a path.
+   *   "https://storage.googleapis.com/bucket/avatars/x.png" → "avatars/x.png"
+   *   "avatars/x.png" → "avatars/x.png"
+   */
+  extractPath(urlOrPath: string): string {
+    if (!urlOrPath) return '';
+    if (!urlOrPath.startsWith('http')) return urlOrPath; // already a path
+    // Try to extract after bucket name
+    const marker = `${this.bucketName}/`;
+    const idx = urlOrPath.indexOf(marker);
+    if (idx !== -1) return urlOrPath.slice(idx + marker.length);
+    // Fallback: take last two segments  (folder/file)
+    const parts = urlOrPath.split('/');
+    return parts.slice(-2).join('/');
+  }
+
+  // ─── Signed URL ────────────────────────────────────────────
+
+  /**
+   * Generate a signed URL for reading a GCS object.
+   * @param objectPath  e.g. "avatars/uuid.png"
+   * @param expiresMs   lifetime in ms (default 7 days)
+   * @returns { url, expiresAt }
+   */
+  async getSignedUrl(
+    objectPath: string,
+    expiresMs = SIGNED_URL_EXPIRES_MS,
+  ): Promise<{ url: string; expiresAt: string }> {
+    if (!this.storage || !this.bucketName) {
+      throw new InternalServerErrorException('File storage is not configured');
+    }
+
+    const file = this.storage.bucket(this.bucketName).file(objectPath);
+    const expiresAt = new Date(Date.now() + expiresMs);
+
+    const [url] = await file.getSignedUrl({
+      version: 'v4',
+      action: 'read',
+      expires: expiresAt,
+    });
+
+    this.logger.debug(`[GCS] Signed URL for "${objectPath}" expires ${expiresAt.toISOString()}`);
+    return { url, expiresAt: expiresAt.toISOString() };
+  }
+
+  /**
+   * Resolve an avatar field value to a displayable signed URL.
+   * Handles: null/empty → null, http URL (legacy) → as-is, GCS path → signed URL.
+   */
+  async resolveAvatarUrl(avatar: string | null | undefined): Promise<string | null> {
+    if (!avatar) return null;
+    if (avatar.startsWith('http')) {
+      // Legacy full URL — convert to signed URL if it's from our bucket
+      const objectPath = this.extractPath(avatar);
+      if (objectPath && objectPath !== avatar) {
+        try {
+          const { url } = await this.getSignedUrl(objectPath);
+          return url;
+        } catch {
+          return avatar; // fallback to original URL
+        }
+      }
+      return avatar;
+    }
+    // It's a GCS object path
+    try {
+      const { url } = await this.getSignedUrl(avatar);
+      return url;
+    } catch {
+      return null;
+    }
+  }
+
+  // ─── Upload ────────────────────────────────────────────────
+
+  /**
+   * Upload a file buffer to GCS.
+   * Returns the GCS object path and a pre-signed URL.
    */
   async upload(
     folder: string,
     file: Express.Multer.File,
-  ): Promise<string> {
+  ): Promise<{ path: string; url: string; expiresAt: string }> {
     if (!this.storage || !this.bucketName) {
       throw new InternalServerErrorException('File storage is not configured');
     }
@@ -77,16 +164,11 @@ export class UploadsService {
       });
       this.logger.log(`[GCS] Saved ${filename} in ${Date.now() - t0}ms`);
 
-      // Bucket uses uniform bucket-level access — no per-object makePublic() needed.
-      // Public read is controlled by the bucket's IAM policy.
+      // Generate signed URL for immediate use
+      const signed = await this.getSignedUrl(filename);
 
-      // Return CDN URL or default GCS URL
-      const url = this.cdnBaseUrl
-        ? `${this.cdnBaseUrl}/${filename}`
-        : `https://storage.googleapis.com/${this.bucketName}/${filename}`;
-
-      this.logger.log(`[GCS] Upload complete: ${url} (total ${Date.now() - t0}ms)`);
-      return url;
+      this.logger.log(`[GCS] Upload complete: path=${filename} (total ${Date.now() - t0}ms)`);
+      return { path: filename, ...signed };
     } catch (err: any) {
       this.logger.error(`[GCS] Upload FAILED for ${filename}: ${err.message}`, err.stack);
       throw new InternalServerErrorException('Failed to upload file');
@@ -94,16 +176,14 @@ export class UploadsService {
   }
 
   /**
-   * Delete a file from GCS by its public URL.
+   * Delete a file from GCS by its URL or path.
    */
-  async delete(fileUrl: string): Promise<void> {
+  async delete(fileUrlOrPath: string): Promise<void> {
     if (!this.storage || !this.bucketName) return;
 
     try {
-      // Extract filename from URL
-      const urlParts = fileUrl.split(`${this.bucketName}/`);
-      if (urlParts.length < 2) return;
-      const filename = urlParts[1];
+      const filename = this.extractPath(fileUrlOrPath);
+      if (!filename) return;
 
       await this.storage.bucket(this.bucketName).file(filename).delete();
       this.logger.log(`Deleted file: ${filename}`);

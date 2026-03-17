@@ -3,15 +3,28 @@ import { UsersService } from './users.service';
 import { UpdateUserDto, UpdatePasswordDto, UpdateNotificationsDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { UploadsService } from '../uploads/uploads.service';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard)
 export class UsersController {
-  constructor(private readonly usersService: UsersService) { }
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly uploadsService: UploadsService,
+  ) { }
+
+  /** Resolve avatar field to signed URL */
+  private async withSignedAvatar(user: any) {
+    if (!user) return user;
+    const obj = typeof user.toObject === 'function' ? user.toObject() : { ...user };
+    obj.avatar = await this.uploadsService.resolveAvatarUrl(obj.avatar);
+    return obj;
+  }
 
   @Get('me')
   async getMe(@CurrentUser('_id') userId: string) {
-    return this.usersService.findById(userId);
+    const user = await this.usersService.findById(userId);
+    return this.withSignedAvatar(user);
   }
 
   @Put('me')
@@ -19,7 +32,8 @@ export class UsersController {
     @CurrentUser('_id') userId: string,
     @Body() dto: UpdateUserDto,
   ) {
-    return this.usersService.update(userId, dto);
+    const user = await this.usersService.update(userId, dto);
+    return this.withSignedAvatar(user);
   }
 
   @Put('me/password')

@@ -4,10 +4,14 @@ import { RegisterDto, LoginDto } from './dto/auth.dto';
 import { Public } from '../../common/decorators/public.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { UploadsService } from '../uploads/uploads.service';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) { }
+  constructor(
+    private readonly authService: AuthService,
+    private readonly uploadsService: UploadsService,
+  ) { }
 
   @Public()
   @Post('register')
@@ -36,7 +40,7 @@ export class AuthController {
       email: user.email,
       plan: user.plan,
       role: user.role,
-      avatar: user.avatar,
+      avatar: await this.uploadsService.resolveAvatarUrl(user.avatar),
       phone: user.phone,
       bio: user.bio,
       github: user.github,
