@@ -41,6 +41,7 @@ export class AuthController {
       plan: user.plan,
       role: user.role,
       avatar: await this.uploadsService.resolveAvatarUrl(user.avatar),
+      accountStatus: user.accountStatus,
       phone: user.phone,
       bio: user.bio,
       github: user.github,
