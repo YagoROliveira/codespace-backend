@@ -12,9 +12,9 @@ const SIGNED_URL_REFRESH_BUFFER_MS = 60 * 60 * 1000;
 
 /** Image processing config per folder */
 const IMAGE_PROFILES: Record<string, { maxWidth: number; maxHeight: number; quality: number }> = {
-  avatars:   { maxWidth: 256, maxHeight: 256, quality: 80 },
-  covers:    { maxWidth: 1200, maxHeight: 630, quality: 82 },
-  general:   { maxWidth: 1024, maxHeight: 1024, quality: 80 },
+  avatars: { maxWidth: 256, maxHeight: 256, quality: 80 },
+  covers: { maxWidth: 1200, maxHeight: 630, quality: 82 },
+  general: { maxWidth: 1024, maxHeight: 1024, quality: 80 },
 };
 const DEFAULT_PROFILE = { maxWidth: 1024, maxHeight: 1024, quality: 80 };
 

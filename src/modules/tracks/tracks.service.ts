@@ -17,7 +17,7 @@ export class TracksService {
 
   async findAll(): Promise<any[]> {
     return this.trackModel.find({ isPublished: true })
-      .select('title slug description icon color tags difficulty totalLessons estimatedHours requiredPlans order isPublished')
+      .select('title slug description icon color coverImage tags difficulty totalLessons estimatedHours requiredPlans order isPublished')
       .sort({ order: 1 }).lean().exec();
   }
 
@@ -56,7 +56,7 @@ export class TracksService {
 
   async getUserTracks(userId: string): Promise<any[]> {
     const tracks = await this.trackModel.find({ isPublished: true })
-      .select('title slug description icon color tags difficulty totalLessons estimatedHours requiredPlans order isPublished')
+      .select('title slug description icon color coverImage tags difficulty totalLessons estimatedHours requiredPlans order isPublished')
       .sort({ order: 1 }).lean().exec();
     const progress = await this.progressModel.find({ userId: new Types.ObjectId(userId) })
       .select('trackId status progressPercent completedLessons startedAt')

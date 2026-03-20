@@ -66,6 +66,9 @@ export class Track {
   @Prop({ default: '' })
   color: string;
 
+  @Prop({ default: '' })
+  coverImage: string;
+
   @Prop({ type: [String], default: [] })
   tags: string[];
 
